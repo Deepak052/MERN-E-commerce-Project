@@ -86,21 +86,37 @@ exports.getAll = async (req, res) => {
 exports.getByIdOrSlug = async (req, res) => {
   try {
     const { idOrSlug } = req.params;
+
+    console.log("🔍 Incoming request param:", idOrSlug);
+
     // Check if the param is a valid 24-character hex string (ObjectId)
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(idOrSlug);
+    console.log("🧠 Is ObjectId:", isObjectId);
+
     const query = isObjectId ? { _id: idOrSlug } : { slug: idOrSlug };
+    console.log("📦 Query being used:", query);
 
     const product = await Product.findOne(query)
       .populate("brand", "name slug")
       .populate("category", "name slug");
 
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    console.log("📊 DB Result:", product);
+
+    if (!product) {
+      console.warn("⚠️ Product not found for:", idOrSlug);
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    console.log("✅ Product fetched successfully:", product._id);
 
     res.status(200).json(product);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error getting product details", error: error.message });
+    console.error("❌ Error in getByIdOrSlug:", error);
+
+    res.status(500).json({
+      message: "Error getting product details",
+      error: error.message,
+    });
   }
 };
 
@@ -159,5 +175,49 @@ exports.deleteById = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting product", error: error.message });
+  }
+};
+
+//new arrivals
+exports.getNewArrivals = async (req, res) => {
+  try {
+    // Determine how many products to fetch (default 10)
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+
+    // Fetch active, non-deleted products sorted by newest first
+    const newArrivals = await Product.find({ isDeleted: false, isActive: true })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("brand", "name slug logo")
+      .populate("category", "name slug");
+
+    res.status(200).json(newArrivals);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching new arrivals", error: error.message });
+  }
+};
+
+//search products
+exports.getSearchSuggestions = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.status(200).json([]);
+
+    // Use regex for partial, case-insensitive matches as the user types
+    const suggestions = await Product.find({
+      isDeleted: false,
+      isActive: true,
+      title: { $regex: q, $options: "i" },
+    })
+      .select("title slug thumbnail basePrice") // Only fetch what we need for the UI
+      .limit(5); // Keep it fast, max 5 suggestions
+
+    res.status(200).json(suggestions);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching suggestions", error: error.message });
   }
 };

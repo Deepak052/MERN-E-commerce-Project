@@ -16,6 +16,8 @@ const wishlistRoutes=require("./routes/Wishlist")
 const { connectToDB } = require("./database/db")
 const dashboardRoutes = require("./routes/Dashboard");
 const uploadRoutes = require("./routes/Upload");
+const bannerRoutes = require("./routes/Banner");
+const adminUserRoutes=require("./routes/admin/userRoutes");
 // server init
 const server=express()
 
@@ -42,6 +44,8 @@ server.use("/reviews",reviewRoutes)
 server.use("/wishlist",wishlistRoutes)
 server.use("/admin/dashboard", dashboardRoutes);
 server.use("/api/upload", uploadRoutes);
+server.use("/api/banners",bannerRoutes);
+server.use("/admin/users",adminUserRoutes);
 
 
 
