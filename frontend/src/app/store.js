@@ -10,7 +10,7 @@ import ReviewSlice from '../features/review/ReviewSlice'
 import OrderSlice from '../features/order/OrderSlice'
 import WishlistSlice from '../features/wishlist/WishlistSlice'
 import DashboardSlice from "../features/admin/DashboardSlice"
-
+import BannerSlice from "../features/banners/BannerSlice"
 export const store = configureStore({
   reducer: {
     AuthSlice,
@@ -24,5 +24,6 @@ export const store = configureStore({
     OrderSlice,
     WishlistSlice,
     DashboardSlice,
+    BannerSlice,
   },
 });

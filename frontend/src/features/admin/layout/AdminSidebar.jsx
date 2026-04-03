@@ -17,16 +17,19 @@ import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import ViewCarouselRoundedIcon from "@mui/icons-material/ViewCarouselRounded";
 import { UI } from "../theme";
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardRoundedIcon /> },
+  { text: "Banners", icon: <ViewCarouselRoundedIcon /> },
   { text: "Orders", icon: <ShoppingCartRoundedIcon /> },
   { text: "Products", icon: <Inventory2RoundedIcon /> },
   { text: "Brands", icon: <BrandingWatermarkRoundedIcon /> },
   { text: "Categories", icon: <CategoryRoundedIcon /> },
   { text: "Customers", icon: <PeopleAltRoundedIcon /> },
-  { text: "Analytics", icon: <BarChartRoundedIcon /> },
+  { text: "Admins", icon: <BarChartRoundedIcon /> },
+  // { text: "Analytics", icon: <BarChartRoundedIcon /> },
 ];
 
 const AdminSidebar = ({

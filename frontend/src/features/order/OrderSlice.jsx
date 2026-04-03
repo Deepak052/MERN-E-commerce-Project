@@ -1,5 +1,5 @@
 import {createAsyncThunk, createSlice} from '@reduxjs/toolkit'
-import { createOrder, getAllOrders, getOrderByUserId, updateOrderById } from './OrderApi'
+import { createOrder, getAllOrders, getOrderByUserId, updateOrderById, verifyAndCreateOrder } from './OrderApi'
 
 
 const initialState={
@@ -16,6 +16,14 @@ export const createOrderAsync=createAsyncThunk("orders/createOrderAsync",async(o
     const createdOrder=await createOrder(order)
     return createdOrder
 })
+
+export const verifyAndCreateOrderAsync = createAsyncThunk(
+  "orders/verifyAndCreateOrderAsync",
+  async (data) => {
+    const verifiedOrder = await verifyAndCreateOrder(data);
+    return verifiedOrder;
+  },
+)
 
 export const getAllOrdersAsync=createAsyncThunk("orders/getAllOrdersAsync",async()=>{
     const orders=await getAllOrders()
@@ -48,55 +56,70 @@ const orderSlice=createSlice({
     },
     extraReducers:(builder)=>{
         builder
-            .addCase(createOrderAsync.pending,(state)=>{
-                state.status='pending'
-            })
-            .addCase(createOrderAsync.fulfilled,(state,action)=>{
-                state.status='fulfilled'
-                state.orders.push(action.payload)
-                state.currentOrder=action.payload
-            })
-            .addCase(createOrderAsync.rejected,(state,action)=>{
-                state.status='rejected'
-                state.errors=action.error
-            })
+          .addCase(createOrderAsync.pending, (state) => {
+            state.status = "pending";
+          })
+          .addCase(createOrderAsync.fulfilled, (state, action) => {
+            state.status = "fulfilled";
+            state.orders.push(action.payload);
+            state.currentOrder = action.payload;
+          })
+          .addCase(createOrderAsync.rejected, (state, action) => {
+            state.status = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(getAllOrdersAsync.pending,(state)=>{
-                state.orderFetchStatus='pending'
-            })
-            .addCase(getAllOrdersAsync.fulfilled,(state,action)=>{
-                state.orderFetchStatus='fulfilled'
-                state.orders=action.payload
-            })
-            .addCase(getAllOrdersAsync.rejected,(state,action)=>{
-                state.orderFetchStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(verifyAndCreateOrderAsync.pending, (state) => {
+            state.status = "pending";
+          })
+          .addCase(verifyAndCreateOrderAsync.fulfilled, (state, action) => {
+            state.status = "fulfilled";
+            state.orders.push(action.payload);
+            state.currentOrder = action.payload; // This triggers the success redirect!
+          })
+          .addCase(verifyAndCreateOrderAsync.rejected, (state, action) => {
+            state.status = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(getOrderByUserIdAsync.pending,(state)=>{
-                state.orderFetchStatus='pending'
-            })
-            .addCase(getOrderByUserIdAsync.fulfilled,(state,action)=>{
-                state.orderFetchStatus='fulfilled'
-                state.orders=action.payload
-            })
-            .addCase(getOrderByUserIdAsync.rejected,(state,action)=>{
-                state.orderFetchStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(getAllOrdersAsync.pending, (state) => {
+            state.orderFetchStatus = "pending";
+          })
+          .addCase(getAllOrdersAsync.fulfilled, (state, action) => {
+            state.orderFetchStatus = "fulfilled";
+            state.orders = action.payload;
+          })
+          .addCase(getAllOrdersAsync.rejected, (state, action) => {
+            state.orderFetchStatus = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(updateOrderByIdAsync.pending,(state)=>{
-                state.orderUpdateStatus='pending'
-            })
-            .addCase(updateOrderByIdAsync.fulfilled,(state,action)=>{
-                state.orderUpdateStatus='fulfilled'
-                const index=state.orders.findIndex((order)=>order._id===action.payload._id)
-                state.orders[index]=action.payload
-            })
-            .addCase(updateOrderByIdAsync.rejected,(state,action)=>{
-                state.orderUpdateStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(getOrderByUserIdAsync.pending, (state) => {
+            state.orderFetchStatus = "pending";
+          })
+          .addCase(getOrderByUserIdAsync.fulfilled, (state, action) => {
+            state.orderFetchStatus = "fulfilled";
+            state.orders = action.payload;
+          })
+          .addCase(getOrderByUserIdAsync.rejected, (state, action) => {
+            state.orderFetchStatus = "rejected";
+            state.errors = action.error;
+          })
+
+          .addCase(updateOrderByIdAsync.pending, (state) => {
+            state.orderUpdateStatus = "pending";
+          })
+          .addCase(updateOrderByIdAsync.fulfilled, (state, action) => {
+            state.orderUpdateStatus = "fulfilled";
+            const index = state.orders.findIndex(
+              (order) => order._id === action.payload._id,
+            );
+            state.orders[index] = action.payload;
+          })
+          .addCase(updateOrderByIdAsync.rejected, (state, action) => {
+            state.orderUpdateStatus = "rejected";
+            state.errors = action.error;
+          });
     }
 })
 

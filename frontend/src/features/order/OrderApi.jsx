@@ -10,6 +10,24 @@ export const createOrder=async(order)=>{
     }
 }
 
+export const createRazorpayOrderSession = async (amountData) => {
+  try {
+    const res = await axiosi.post("/orders/razorpay/create", amountData);
+    return res.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
+export const verifyAndCreateOrder = async (verificationData) => {
+  try {
+    const res = await axiosi.post("/orders/razorpay/verify", verificationData);
+    return res.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
 export const getOrderByUserId=async(id)=>{
     try {
         const res=await axiosi.get(`/orders/user/${id}`)

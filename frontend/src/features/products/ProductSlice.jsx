@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { addProduct, deleteProductById, fetchProductById, fetchProducts, undeleteProductById, updateProductById } from "./ProductApi";
+import { addProduct, deleteProductById, fetchNewArrivals, fetchProductById, fetchProducts, undeleteProductById, updateProductById } from "./ProductApi";
 
 
 const initialState={
@@ -12,7 +12,9 @@ const initialState={
     isFilterOpen:false,
     selectedProduct:null,
     errors:null,
-    successMessage:null
+    successMessage:null,
+    newArrivals: [],
+    newArrivalsStatus: "idle",
 }
 
 export const addProductAsync=createAsyncThunk("products/addProductAsync",async(data)=>{
@@ -39,6 +41,13 @@ export const deleteProductByIdAsync=createAsyncThunk("products/deleteProductById
     const deletedProduct=await deleteProductById(id)
     return deletedProduct
 })
+
+export const fetchNewArrivalsAsync = createAsyncThunk(
+  "products/fetchNewArrivals",
+  async (limit) => {
+    return await fetchNewArrivals(limit);
+  },
+);
 
 const productSlice=createSlice({
     name:"productSlice",
@@ -71,81 +80,97 @@ const productSlice=createSlice({
     },
     extraReducers:(builder)=>{
         builder
-            .addCase(addProductAsync.pending,(state)=>{
-                state.productAddStatus='pending'
-            })
-            .addCase(addProductAsync.fulfilled,(state,action)=>{
-                state.productAddStatus='fullfilled'
-                state.products.push(action.payload)
-            })
-            .addCase(addProductAsync.rejected,(state,action)=>{
-                state.productAddStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(addProductAsync.pending, (state) => {
+            state.productAddStatus = "pending";
+          })
+          .addCase(addProductAsync.fulfilled, (state, action) => {
+            state.productAddStatus = "fullfilled";
+            state.products.push(action.payload);
+          })
+          .addCase(addProductAsync.rejected, (state, action) => {
+            state.productAddStatus = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(fetchProductsAsync.pending,(state)=>{
-                state.productFetchStatus='pending'
-            })
-            .addCase(fetchProductsAsync.fulfilled,(state,action)=>{
-                state.productFetchStatus='fullfilled'
-                state.products=action.payload.data
-                state.totalResults=action.payload.totalResults
-            })
-            .addCase(fetchProductsAsync.rejected,(state,action)=>{
-                state.productFetchStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(fetchProductsAsync.pending, (state) => {
+            state.productFetchStatus = "pending";
+          })
+          .addCase(fetchProductsAsync.fulfilled, (state, action) => {
+            state.productFetchStatus = "fullfilled";
+            state.products = action.payload.data;
+            state.totalResults = action.payload.totalResults;
+          })
+          .addCase(fetchProductsAsync.rejected, (state, action) => {
+            state.productFetchStatus = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(fetchProductByIdAsync.pending,(state)=>{
-                state.productFetchStatus='pending'
-            })
-            .addCase(fetchProductByIdAsync.fulfilled,(state,action)=>{
-                state.productFetchStatus='fullfilled'
-                state.selectedProduct=action.payload
-            })
-            .addCase(fetchProductByIdAsync.rejected,(state,action)=>{
-                state.productFetchStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(fetchProductByIdAsync.pending, (state) => {
+            state.productFetchStatus = "pending";
+          })
+          .addCase(fetchProductByIdAsync.fulfilled, (state, action) => {
+            state.productFetchStatus = "fullfilled";
+            state.selectedProduct = action.payload;
+          })
+          .addCase(fetchProductByIdAsync.rejected, (state, action) => {
+            state.productFetchStatus = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(updateProductByIdAsync.pending,(state)=>{
-                state.productUpdateStatus='pending'
-            })
-            .addCase(updateProductByIdAsync.fulfilled,(state,action)=>{
-                state.productUpdateStatus='fullfilled'
-                const index=state.products.findIndex((product)=>product._id===action.payload._id)
-                state.products[index]=action.payload
-            })
-            .addCase(updateProductByIdAsync.rejected,(state,action)=>{
-                state.productUpdateStatus='rejected'
-                state.errors=action.error
-            })
+          .addCase(updateProductByIdAsync.pending, (state) => {
+            state.productUpdateStatus = "pending";
+          })
+          .addCase(updateProductByIdAsync.fulfilled, (state, action) => {
+            state.productUpdateStatus = "fullfilled";
+            const index = state.products.findIndex(
+              (product) => product._id === action.payload._id,
+            );
+            state.products[index] = action.payload;
+          })
+          .addCase(updateProductByIdAsync.rejected, (state, action) => {
+            state.productUpdateStatus = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(undeleteProductByIdAsync.pending,(state)=>{
-                state.status='pending'
-            })
-            .addCase(undeleteProductByIdAsync.fulfilled,(state,action)=>{
-                state.status='fullfilled'
-                const index=state.products.findIndex((product)=>product._id===action.payload._id)
-                state.products[index]=action.payload
-            })
-            .addCase(undeleteProductByIdAsync.rejected,(state,action)=>{
-                state.status='rejected'
-                state.errors=action.error
-            })
+          .addCase(undeleteProductByIdAsync.pending, (state) => {
+            state.status = "pending";
+          })
+          .addCase(undeleteProductByIdAsync.fulfilled, (state, action) => {
+            state.status = "fullfilled";
+            const index = state.products.findIndex(
+              (product) => product._id === action.payload._id,
+            );
+            state.products[index] = action.payload;
+          })
+          .addCase(undeleteProductByIdAsync.rejected, (state, action) => {
+            state.status = "rejected";
+            state.errors = action.error;
+          })
 
-            .addCase(deleteProductByIdAsync.pending,(state)=>{
-                state.status='pending'
-            })
-            .addCase(deleteProductByIdAsync.fulfilled,(state,action)=>{
-                state.status='fullfilled'
-                const index=state.products.findIndex((product)=>product._id===action.payload._id)
-                state.products[index]=action.payload
-            })
-            .addCase(deleteProductByIdAsync.rejected,(state,action)=>{
-                state.status='rejected'
-                state.errors=action.error
-            })
+          .addCase(deleteProductByIdAsync.pending, (state) => {
+            state.status = "pending";
+          })
+          .addCase(deleteProductByIdAsync.fulfilled, (state, action) => {
+            state.status = "fullfilled";
+            const index = state.products.findIndex(
+              (product) => product._id === action.payload._id,
+            );
+            state.products[index] = action.payload;
+          })
+          .addCase(deleteProductByIdAsync.rejected, (state, action) => {
+            state.status = "rejected";
+            state.errors = action.error;
+          })
+          .addCase(fetchNewArrivalsAsync.pending, (state) => {
+            state.newArrivalsStatus = "pending";
+          })
+          .addCase(fetchNewArrivalsAsync.fulfilled, (state, action) => {
+            state.newArrivalsStatus = "fulfilled";
+            state.newArrivals = action.payload;
+          })
+          .addCase(fetchNewArrivalsAsync.rejected, (state, action) => {
+            state.newArrivalsStatus = "rejected";
+          });
     }
 })
 
@@ -160,6 +185,7 @@ export const selectProductUpdateStatus=(state)=>state.ProductSlice.productUpdate
 export const selectProductAddStatus=(state)=>state.ProductSlice.productAddStatus
 export const selectProductIsFilterOpen=(state)=>state.ProductSlice.isFilterOpen
 export const selectProductFetchStatus=(state)=>state.ProductSlice.productFetchStatus
+export const selectNewArrivals = (state) => state.ProductSlice.newArrivals;
 
 // exporting actions
 export const {clearProductSuccessMessage,clearProductErrors,clearSelectedProduct,resetProductStatus,resetProductUpdateStatus,resetProductAddStatus,toggleFilters,resetProductFetchStatus}=productSlice.actions

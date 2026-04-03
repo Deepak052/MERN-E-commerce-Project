@@ -1,210 +1,484 @@
-import React, { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, useParams } from 'react-router-dom'
-import { clearSelectedProduct, fetchProductByIdAsync, resetProductFetchStatus, selectProductFetchStatus, selectSelectedProduct } from '../ProductSlice'
-import { Box, Checkbox, Rating, Stack, Typography, useMediaQuery, Button } from '@mui/material'
-import { addToCartAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems } from '../../cart/CartSlice'
-import { selectLoggedInUser } from '../../auth/AuthSlice'
-import { fetchReviewsByProductIdAsync, resetReviewFetchStatus, selectReviewFetchStatus, selectReviews } from '../../review/ReviewSlice'
-import { Reviews } from '../../review/components/Reviews'
-import { toast } from 'react-toastify'
-import { MotionConfig, motion } from 'framer-motion'
-import FavoriteBorder from '@mui/icons-material/FavoriteBorder'
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined'
-import CachedOutlinedIcon from '@mui/icons-material/CachedOutlined'
-import Favorite from '@mui/icons-material/Favorite'
-import { createWishlistItemAsync, deleteWishlistItemByIdAsync, resetWishlistItemAddStatus, resetWishlistItemDeleteStatus, selectWishlistItemAddStatus, selectWishlistItemDeleteStatus, selectWishlistItems } from '../../wishlist/WishlistSlice'
-import { useTheme } from '@mui/material'
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import {
+  Box,
+  Rating,
+  Stack,
+  Typography,
+  useMediaQuery,
+  Button,
+  Breadcrumbs,
+  Divider,
+  IconButton,
+  Chip,
+} from "@mui/material";
+import { toast } from "react-toastify";
+
+// Swiper
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
+
+// Icons
+import FavoriteBorder from "@mui/icons-material/FavoriteBorder";
+import Favorite from "@mui/icons-material/Favorite";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
+
+// Redux
+import {
+  clearSelectedProduct,
+  fetchProductByIdAsync,
+  selectProductFetchStatus,
+  selectSelectedProduct,
+} from "../ProductSlice";
+import {
+  addToCartAsync,
+  selectCartItemAddStatus,
+  selectCartItems,
+} from "../../cart/CartSlice";
+import { selectLoggedInUser } from "../../auth/AuthSlice";
+import {
+  fetchReviewsByProductIdAsync,
+  selectReviews,
+} from "../../review/ReviewSlice";
+import {
+  createWishlistItemAsync,
+  deleteWishlistItemByIdAsync,
+  selectWishlistItems,
+} from "../../wishlist/WishlistSlice";
+
 import LottieComponent from "lottie-react";
-import { loadingAnimation } from '../../../assets'
-
-// ✅ Swiper
-import { Swiper, SwiperSlide } from "swiper/react"
-import { Autoplay, Pagination, Navigation } from "swiper/modules"
-import "swiper/css"
-import "swiper/css/pagination"
-import "swiper/css/navigation"
-
-const SIZES = ['XS', 'S', 'M', 'L', 'XL']
-const COLORS = ['#020202', '#F6F6F6', '#B82222', '#BEA9A9', '#E2BB8D']
-
+import { loadingAnimation } from "../../../assets";
 const Lottie = LottieComponent.default || LottieComponent;
 
 export const ProductDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-    const { id } = useParams()
-    const product = useSelector(selectSelectedProduct)
-    const loggedInUser = useSelector(selectLoggedInUser)
-    const dispatch = useDispatch()
-    const cartItems = useSelector(selectCartItems)
-    const cartItemAddStatus = useSelector(selectCartItemAddStatus)
-    const [quantity, setQuantity] = useState(1)
-    const [selectedSize, setSelectedSize] = useState('')
-    const [selectedColorIndex, setSelectedColorIndex] = useState(-1)
-    const reviews = useSelector(selectReviews)
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const product = useSelector(selectSelectedProduct);
+  const loggedInUser = useSelector(selectLoggedInUser);
+  const cartItems = useSelector(selectCartItems);
+  const wishlistItems = useSelector(selectWishlistItems);
+  const reviews = useSelector(selectReviews) || [];
 
-    const theme = useTheme()
-    const is1420 = useMediaQuery(theme.breakpoints.down(1420))
-    const is990 = useMediaQuery(theme.breakpoints.down(990))
-    const is840 = useMediaQuery(theme.breakpoints.down(840))
-    const is500 = useMediaQuery(theme.breakpoints.down(500))
-    const is480 = useMediaQuery(theme.breakpoints.down(480))
-    const is387 = useMediaQuery(theme.breakpoints.down(387))
-    const is340 = useMediaQuery(theme.breakpoints.down(340))
+  const productFetchStatus = useSelector(selectProductFetchStatus);
+  const cartItemAddStatus = useSelector(selectCartItemAddStatus);
 
-    const wishlistItems = useSelector(selectWishlistItems)
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-    const isProductAlreadyInCart = cartItems.some((item) => item.product._id === id)
-    const isProductAlreadyinWishlist = wishlistItems.some((item) => item.product._id === id)
+  // Responsive breakpoints
+  const is990 = useMediaQuery("(max-width:990px)");
+  const is500 = useMediaQuery("(max-width:500px)");
 
-    const productFetchStatus = useSelector(selectProductFetchStatus)
-    const reviewFetchStatus = useSelector(selectReviewFetchStatus)
+  const isProductAlreadyInCart = cartItems.some(
+    (item) => item.product._id === id,
+  );
+  const isProductAlreadyinWishlist = wishlistItems.some(
+    (item) => item.product._id === id,
+  );
 
-    const totalReviewRating = reviews.reduce((acc, review) => acc + review.rating, 0)
-    const totalReviews = reviews.length
-    const averageRating = parseInt(Math.ceil(totalReviewRating / totalReviews))
+  const averageRating =
+    reviews.length > 0
+      ? Math.ceil(
+          reviews.reduce((acc, review) => acc + review.rating, 0) /
+            reviews.length,
+        )
+      : 0;
 
-    const wishlistItemAddStatus = useSelector(selectWishlistItemAddStatus)
-    const wishlistItemDeleteStatus = useSelector(selectWishlistItemDeleteStatus)
+  // Calculate final price
+  const finalPrice = product
+    ? product.basePrice * (1 - (product.discountPercentage || 0) / 100)
+    : 0;
 
-    const navigate = useNavigate()
-
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: "instant" })
-    }, [])
-
-    useEffect(() => {
-        if (id) {
-            dispatch(fetchProductByIdAsync(id))
-            dispatch(fetchReviewsByProductIdAsync(id))
-        }
-    }, [id])
-
-    useEffect(() => {
-        if (cartItemAddStatus === 'fulfilled') toast.success("Product added to cart")
-        else if (cartItemAddStatus === 'rejected') toast.error('Error adding product')
-    }, [cartItemAddStatus])
-
-    useEffect(() => {
-        return () => {
-            dispatch(clearSelectedProduct())
-            dispatch(resetProductFetchStatus())
-            dispatch(resetReviewFetchStatus())
-            dispatch(resetWishlistItemDeleteStatus())
-            dispatch(resetWishlistItemAddStatus())
-            dispatch(resetCartItemAddStatus())
-        }
-    }, [])
-
-    const handleAddToCart = () => {
-        const item = { user: loggedInUser._id, product: id, quantity }
-        dispatch(addToCartAsync(item))
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    if (id) {
+      dispatch(fetchProductByIdAsync(id));
+      dispatch(fetchReviewsByProductIdAsync(id));
     }
+    return () => {
+      dispatch(clearSelectedProduct());
+    };
+  }, [id, dispatch]);
 
-    const handleDecreaseQty = () => {
-        if (quantity !== 1) setQuantity(quantity - 1)
+  useEffect(() => {
+    if (cartItemAddStatus === "fulfilled") toast.success("Added to cart!");
+    else if (cartItemAddStatus === "rejected")
+      toast.error("Failed to add to cart.");
+  }, [cartItemAddStatus]);
+
+  const handleAddToCart = () => {
+    if (isProductAlreadyInCart) {
+      navigate("/cart");
+    } else {
+      const item = { user: loggedInUser._id, product: id, quantity };
+      dispatch(addToCartAsync(item));
     }
+  };
 
-    const handleIncreaseQty = () => {
-        if (quantity < 20 && quantity < product.stockQuantity) setQuantity(quantity + 1)
+  const handleAddRemoveFromWishlist = () => {
+    if (!isProductAlreadyinWishlist) {
+      dispatch(
+        createWishlistItemAsync({ user: loggedInUser?._id, product: id }),
+      );
+    } else {
+      const index = wishlistItems.findIndex((item) => item.product._id === id);
+      dispatch(deleteWishlistItemByIdAsync(wishlistItems[index]._id));
     }
+  };
 
-    const handleAddRemoveFromWishlist = (e) => {
-        if (e.target.checked) {
-            dispatch(createWishlistItemAsync({ user: loggedInUser?._id, product: id }))
-        } else {
-            const index = wishlistItems.findIndex((item) => item.product._id === id)
-            dispatch(deleteWishlistItemByIdAsync(wishlistItems[index]._id))
-        }
+  // ✅ RESTORED MISSING QUANTITY FUNCTIONS
+  const handleDecreaseQty = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
     }
+  };
 
+  const handleIncreaseQty = () => {
+    if (quantity < product.stockQuantity && quantity < 10) {
+      setQuantity(quantity + 1);
+    }
+  };
+
+  if (productFetchStatus === "pending" || !product) {
     return (
-        <Stack alignItems="center" mb={5}>
+      <Stack alignItems="center" justifyContent="center" height="60vh">
+        <Lottie animationData={loadingAnimation} style={{ width: 150 }} />
+      </Stack>
+    );
+  }
 
-            {(productFetchStatus === 'pending') ?
-                <Lottie animationData={loadingAnimation} />
-                :
-                <Stack direction={is840 ? "column" : "row"} gap={5}>
+  return (
+    <Box
+      sx={{ maxWidth: 1200, mx: "auto", px: { xs: 2, md: 4 }, py: 4, mb: 10 }}
+    >
+      {/* BREADCRUMBS */}
+      <Breadcrumbs
+        separator={<NavigateNextIcon fontSize="small" />}
+        sx={{ mb: 4 }}
+      >
+        <Link to="/" style={{ textDecoration: "none", color: "#6b7280" }}>
+          Home
+        </Link>
+        <Link to="/" style={{ textDecoration: "none", color: "#6b7280" }}>
+          {product.category?.name}
+        </Link>
+        <Typography color="text.primary" fontWeight={600}>
+          {product.title}
+        </Typography>
+      </Breadcrumbs>
 
-                    {/* LEFT SIDE */}
-                    <Stack direction="row" gap={3}>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 4, md: 8 }}>
+        {/* LEFT: IMAGE GALLERY */}
+        <Stack
+          direction={{ xs: "column-reverse", md: "row" }}
+          spacing={2}
+          width={{ xs: "100%", md: "55%" }}
+        >
+          {/* Thumbnails */}
+          {!is990 && (
+            <Stack spacing={2} sx={{ width: 80, flexShrink: 0 }}>
+              {product.images?.map((img, i) => (
+                <Box
+                  key={i}
+                  onClick={() => setSelectedImageIndex(i)}
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    border:
+                      selectedImageIndex === i
+                        ? "2px solid #6366f1"
+                        : "1px solid #e5e7eb",
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    overflow: "hidden",
+                    opacity: selectedImageIndex === i ? 1 : 0.6,
+                    transition: "all 0.2s",
+                    "&:hover": { opacity: 1 },
+                  }}
+                >
+                  <img
+                    src={img}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
+                  />
+                </Box>
+              ))}
+            </Stack>
+          )}
 
-                        {/* thumbnails */}
-                        {!is1420 && (
-                            <Stack gap={2}>
-                                {product?.images.map((img, i) => (
-                                    <img
-                                        key={i}
-                                        src={img}
-                                        width={100}
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => setSelectedImageIndex(i)}
-                                    />
-                                ))}
-                            </Stack>
-                        )}
+          {/* Main Image Area */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              bgcolor: "#f9fafb",
+              borderRadius: 4,
+              overflow: "hidden",
+              border: "1px solid #e5e7eb",
+              position: "relative",
+            }}
+          >
+            {is500 ? (
+              <Swiper
+                modules={[Pagination]}
+                pagination={{ clickable: true }}
+                style={{ height: "350px" }}
+              >
+                {product.images?.map((img, i) => (
+                  <SwiperSlide key={i}>
+                    <img
+                      src={img}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            ) : (
+              <img
+                src={product.images?.[selectedImageIndex]}
+                alt={product.title}
+                style={{
+                  width: "100%",
+                  height: "500px",
+                  objectFit: "contain",
+                  padding: "2rem",
+                }}
+              />
+            )}
 
-                        {/* MAIN IMAGE / SWIPER */}
-                        <Stack mt={5} width={is990 ? 400 : 500}>
-
-                            {is1420 ? (
-                                <Swiper
-                                    modules={[Autoplay, Pagination, Navigation]}
-                                    autoplay={{ delay: 3000 }}
-                                    loop
-                                    pagination={{ clickable: true }}
-                                    navigation
-                                >
-                                    {product?.images.map((img, i) => (
-                                        <SwiperSlide key={i}>
-                                            <Box
-                                                component="img"
-                                                src={img}
-                                                sx={{ width: '100%', aspectRatio: '1/1', objectFit: 'contain' }}
-                                            />
-                                        </SwiperSlide>
-                                    ))}
-                                </Swiper>
-                            ) : (
-                                <img
-                                    src={product?.images[selectedImageIndex]}
-                                    style={{ width: '100%' }}
-                                />
-                            )}
-
-                        </Stack>
-                    </Stack>
-
-                    {/* RIGHT SIDE */}
-                    <Stack gap={2} width={300}>
-                        <Typography variant="h4">{product?.title}</Typography>
-                        <Rating value={averageRating} readOnly />
-                        <Typography>${product?.price}</Typography>
-
-                        {/* quantity */}
-                        <Stack direction="row" gap={2}>
-                            <button onClick={handleDecreaseQty}>-</button>
-                            <span>{quantity}</span>
-                            <button onClick={handleIncreaseQty}>+</button>
-                        </Stack>
-
-                        {/* add to cart */}
-                        <Button variant="contained" onClick={handleAddToCart}>
-                            {isProductAlreadyInCart ? "Go to Cart" : "Add to Cart"}
-                        </Button>
-
-                        {/* wishlist */}
-                        <Checkbox
-                            checked={isProductAlreadyinWishlist}
-                            onChange={handleAddRemoveFromWishlist}
-                            icon={<FavoriteBorder />}
-                            checkedIcon={<Favorite color="error" />}
-                        />
-                    </Stack>
-
-                </Stack>
-            }
+            <IconButton
+              onClick={handleAddRemoveFromWishlist}
+              sx={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                bgcolor: "white",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                "&:hover": { bgcolor: "white" },
+                zIndex: 10,
+              }}
+            >
+              {isProductAlreadyinWishlist ? (
+                <Favorite color="error" />
+              ) : (
+                <FavoriteBorder />
+              )}
+            </IconButton>
+          </Box>
         </Stack>
-    )
-}
+
+        {/* RIGHT: PRODUCT DETAILS */}
+        <Stack spacing={3} width={{ xs: "100%", md: "45%" }}>
+          <Box>
+            <Typography
+              variant="overline"
+              color="#6366f1"
+              fontWeight={800}
+              letterSpacing={1}
+            >
+              {product.brand?.name}
+            </Typography>
+            <Typography
+              variant="h4"
+              fontWeight={800}
+              color="#111827"
+              lineHeight={1.2}
+              mt={0.5}
+            >
+              {product.title}
+            </Typography>
+          </Box>
+
+          {/* Rating & Price */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Rating value={averageRating} readOnly size="small" />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                fontWeight={600}
+              >
+                ({reviews.length} Reviews)
+              </Typography>
+            </Stack>
+          </Stack>
+
+          <Stack direction="row" alignItems="flex-end" spacing={1.5}>
+            <Typography variant="h3" fontWeight={800} color="text.primary">
+              ₹{finalPrice.toFixed(0)}
+            </Typography>
+            {product.discountPercentage > 0 && (
+              <>
+                <Typography
+                  variant="h6"
+                  color="text.secondary"
+                  sx={{ textDecoration: "line-through", mb: 0.5 }}
+                >
+                  ₹{product.basePrice}
+                </Typography>
+                <Chip
+                  label={`${product.discountPercentage}% OFF`}
+                  color="error"
+                  size="small"
+                  sx={{ fontWeight: 800, mb: 1 }}
+                />
+              </>
+            )}
+          </Stack>
+
+          <Typography variant="body1" color="text.secondary" lineHeight={1.6}>
+            {product.description}
+          </Typography>
+
+          {/* DYNAMIC ATTRIBUTES */}
+          {product.attributes?.length > 0 && (
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "#f9fafb",
+                borderRadius: 2,
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight={700} mb={1}>
+                Specifications:
+              </Typography>
+              {product.attributes.map((attr, index) => (
+                <Typography key={index} variant="body2" color="text.secondary">
+                  <span style={{ fontWeight: 600, color: "#111827" }}>
+                    {attr.name}:
+                  </span>{" "}
+                  {attr.value}
+                </Typography>
+              ))}
+            </Box>
+          )}
+
+          <Divider />
+
+          {/* Add to Cart Area */}
+          <Stack spacing={2}>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Quantity
+            </Typography>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              {/* QTY Controls */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                sx={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 2,
+                  overflow: "hidden",
+                }}
+              >
+                <IconButton
+                  onClick={handleDecreaseQty}
+                  disabled={quantity <= 1}
+                  sx={{ borderRadius: 0, p: 1.5 }}
+                >
+                  <RemoveRoundedIcon fontSize="small" />
+                </IconButton>
+                <Typography
+                  fontWeight={700}
+                  sx={{ px: 2, minWidth: 40, textAlign: "center" }}
+                >
+                  {quantity}
+                </Typography>
+                <IconButton
+                  onClick={handleIncreaseQty}
+                  disabled={quantity >= product.stockQuantity || quantity >= 10}
+                  sx={{ borderRadius: 0, p: 1.5 }}
+                >
+                  <AddRoundedIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+
+              <Typography
+                variant="caption"
+                color={
+                  product.stockQuantity < 10 ? "error.main" : "text.secondary"
+                }
+                fontWeight={600}
+              >
+                {product.stockQuantity > 0
+                  ? `Only ${product.stockQuantity} left in stock`
+                  : "Out of Stock"}
+              </Typography>
+            </Stack>
+
+            <Button
+              variant="contained"
+              size="large"
+              disabled={product.stockQuantity === 0}
+              onClick={handleAddToCart}
+              sx={{
+                py: 1.5,
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                borderRadius: 2,
+                bgcolor: isProductAlreadyInCart ? "#10b981" : "#6366f1",
+                "&:hover": {
+                  bgcolor: isProductAlreadyInCart ? "#059669" : "#4f46e5",
+                },
+                boxShadow: "0 4px 14px 0 rgba(99, 102, 241, 0.39)",
+              }}
+            >
+              {product.stockQuantity === 0
+                ? "Out of Stock"
+                : isProductAlreadyInCart
+                  ? "Proceed to Checkout"
+                  : "Add to Cart"}
+            </Button>
+          </Stack>
+
+          {/* Trust Badges */}
+          <Stack direction="row" spacing={3} mt={2}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <LocalShippingOutlinedIcon sx={{ color: "text.secondary" }} />
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+              >
+                Free Shipping
+              </Typography>
+            </Stack>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <VerifiedUserOutlinedIcon sx={{ color: "text.secondary" }} />
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+              >
+                Secure Checkout
+              </Typography>
+            </Stack>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Box>
+  );
+};

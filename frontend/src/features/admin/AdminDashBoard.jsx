@@ -7,6 +7,9 @@ import BrandManagerView from "./views/BrandManagerView";
 import OrderManagerView from "./views/OrderManagerView";
 import { UI } from "./theme";
 import CategoryManagerView from "./views/CategoryManagerView";
+import BannerManagerView from "./views/BannerManagerView";
+import CustomerManagerView from "./views/CustomerManagerView";
+import AdminManagerView from "./views/AdminManagerView";
 
 const AdminDashBoard = () => {
   const theme = useTheme();
@@ -28,8 +31,15 @@ const AdminDashBoard = () => {
         return <BrandManagerView />;
       case "Orders":
         return <OrderManagerView />;
-        case "Categories":
-          return <CategoryManagerView/>
+      case "Categories":
+        return <CategoryManagerView />;
+      case "Banners":
+        return <BannerManagerView />;
+      case "Customers":
+        return <CustomerManagerView />;
+      case "Admins":
+        return <AdminManagerView />;
+
       default:
         return (
           <Paper

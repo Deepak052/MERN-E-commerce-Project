@@ -42,6 +42,11 @@ import AdminLayout from "./features/admin/layout/AdminLayout";
 import { AddBrandView } from "./features/admin/views/AddBrandView";
 import CategoryManagerView from "./features/admin/views/CategoryManagerView";
 import { AddEditCategoryView } from "./features/admin/views/AddEditCategoryView";
+import { AddEditBannerView } from "./features/admin/views/AddEditBannerView";
+import BannerManagerView from "./features/admin/views/BannerManagerView";
+import CustomerManagerView from "./features/admin/views/CustomerManagerView";
+import { CustomerDetailView } from "./features/admin/views/CustomerDetailView";
+import AdminManagerView from "./features/admin/views/AdminManagerView";
 
 function App() {
   const isAuthChecked = useSelector(selectIsAuthChecked);
@@ -223,6 +228,70 @@ function App() {
             <Protected adminOnly={true}>
               <AdminLayout activeTab="Categories">
                 <AddEditCategoryView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/admin/banners"
+          element={
+            <Protected adminOnly={true}>
+              <AdminLayout activeTab="Banners">
+                <BannerManagerView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin/banners/add"
+          element={
+            <Protected adminOnly={true}>
+              <AdminLayout activeTab="Banners">
+                <AddEditBannerView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin/banners/edit/:id"
+          element={
+            <Protected adminOnly={true}>
+              <AdminLayout activeTab="Banners">
+                <AddEditBannerView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/admin/customers"
+          element={
+            <Protected adminOnly={true}>
+              <AdminLayout activeTab="Customers">
+                <CustomerManagerView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/admin/customers/:id"
+          element={
+            <Protected adminOnly={true}>
+              <AdminLayout activeTab="Customers">
+                <CustomerDetailView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/admin/personnel"
+          element={
+            <Protected adminOnly={true}>
+              <AdminLayout activeTab="Admins">
+                <AdminManagerView />
               </AdminLayout>
             </Protected>
           }
