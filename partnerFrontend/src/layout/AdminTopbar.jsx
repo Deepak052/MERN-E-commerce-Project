@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Paper,
   Stack,
@@ -8,19 +9,51 @@ import {
   Menu,
   MenuItem,
   Typography,
+  Avatar,
+  Divider,
+  ListItemIcon,
+  Box,
 } from "@mui/material";
+
+// Icons
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 import BrandingWatermarkRoundedIcon from "@mui/icons-material/BrandingWatermarkRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
-import { UI } from "../theme";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
+
+// Redux & Theme
+import { UI } from "../theme/theme";
+import {
+  logoutAsync,
+  selectLoggedInUser,
+} from "../features/auth/slice/AuthSlice";
 
 const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
+  const dispatch = useDispatch();
+  const user = useSelector(selectLoggedInUser);
+
+  // --- Menu States ---
+  const [createAnchorEl, setCreateAnchorEl] = useState(null);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+
+  // --- Menu Handlers ---
+  const handleCreateClick = (event) => setCreateAnchorEl(event.currentTarget);
+  const handleCreateClose = () => setCreateAnchorEl(null);
+
+  const handleProfileClick = (event) => setProfileAnchorEl(event.currentTarget);
+  const handleProfileClose = () => setProfileAnchorEl(null);
+
+  // --- Logout Logic ---
+  const handleLogout = () => {
+    dispatch(logoutAsync());
+    handleProfileClose();
+    // Note: No need to manually navigate to /login here.
+    // Once Redux state clears the user, your <Protected> route will automatically redirect them!
+  };
 
   return (
     <Paper
@@ -34,8 +67,10 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
         justifyContent: "space-between",
         borderRadius: 0,
         zIndex: 10,
+        bgcolor: UI.cardBg,
       }}
     >
+      {/* LEFT SECTION */}
       <Stack direction="row" alignItems="center" spacing={2}>
         {isMobile && (
           <IconButton onClick={() => setSidebarOpen(true)}>
@@ -46,15 +81,16 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
           {activeTab}
         </Typography>
       </Stack>
+
+      {/* RIGHT SECTION */}
       <Stack direction="row" alignItems="center" spacing={2}>
-        <IconButton>
-          <NotificationsNoneRoundedIcon />
-        </IconButton>
+        {/* Create New Button */}
         <Button
           variant="contained"
           startIcon={<AddRoundedIcon />}
-          onClick={handleMenuClick}
+          onClick={handleCreateClick}
           sx={{
+            display: { xs: "none", sm: "flex" }, // Hide text on very small screens
             bgcolor: UI.primary,
             borderRadius: 2,
             textTransform: "none",
@@ -63,12 +99,36 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
             "&:hover": { boxShadow: "none", bgcolor: "#4f46e5" },
           }}
         >
-          Create New
+          Create
         </Button>
+
+        {/* Notifications */}
+        <IconButton sx={{ color: UI.textSecondary }}>
+          <NotificationsNoneRoundedIcon />
+        </IconButton>
+
+        {/* User Profile Avatar Button */}
+        <IconButton onClick={handleProfileClick} sx={{ p: 0.5 }}>
+          <Avatar
+            sx={{
+              width: 36,
+              height: 36,
+              bgcolor: UI.primary,
+              fontSize: "1rem",
+              fontWeight: 600,
+            }}
+          >
+            {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
+          </Avatar>
+        </IconButton>
+
+        {/* ========================================== */}
+        {/* 🟢 CREATE DROPDOWN MENU */}
+        {/* ========================================== */}
         <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
+          anchorEl={createAnchorEl}
+          open={Boolean(createAnchorEl)}
+          onClose={handleCreateClose}
           PaperProps={{
             sx: {
               mt: 1,
@@ -82,7 +142,7 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
           <MenuItem
             component={Link}
             to="/products/add"
-            onClick={handleMenuClose}
+            onClick={handleCreateClose}
             sx={{ py: 1.5 }}
           >
             <Inventory2RoundedIcon
@@ -93,8 +153,8 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
           </MenuItem>
           <MenuItem
             component={Link}
-            to="/admin/add-brand"
-            onClick={handleMenuClose}
+            to="/brands"
+            onClick={handleCreateClose}
             sx={{ py: 1.5 }}
           >
             <BrandingWatermarkRoundedIcon
@@ -105,8 +165,8 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
           </MenuItem>
           <MenuItem
             component={Link}
-            to="/admin/add-category"
-            onClick={handleMenuClose}
+            to="/categories"
+            onClick={handleCreateClose}
             sx={{ py: 1.5 }}
           >
             <CategoryRoundedIcon
@@ -114,6 +174,64 @@ const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
               sx={{ mr: 1.5, color: UI.textMuted }}
             />{" "}
             Category
+          </MenuItem>
+        </Menu>
+
+        {/* ========================================== */}
+        {/* 🔴 USER PROFILE DROPDOWN MENU */}
+        {/* ========================================== */}
+        <Menu
+          anchorEl={profileAnchorEl}
+          open={Boolean(profileAnchorEl)}
+          onClose={handleProfileClose}
+          transformOrigin={{ horizontal: "right", vertical: "top" }}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+          PaperProps={{
+            sx: {
+              mt: 1,
+              borderRadius: 2,
+              boxShadow: UI.shadow,
+              border: UI.border,
+              minWidth: 220,
+            },
+          }}
+        >
+          {/* User Info Header */}
+          <Box sx={{ px: 2, py: 1.5 }}>
+            <Typography
+              variant="subtitle2"
+              fontWeight={700}
+              color={UI.textMain}
+            >
+              {user?.name || "Admin User"}
+            </Typography>
+            <Typography variant="body2" color={UI.textSecondary} noWrap>
+              {user?.email || "admin@store.com"}
+            </Typography>
+          </Box>
+
+          <Divider sx={{ my: 0.5 }} />
+
+          {/* Settings / Account */}
+          <MenuItem onClick={handleProfileClose} sx={{ py: 1.2 }}>
+            <ListItemIcon>
+              <AccountCircleRoundedIcon
+                fontSize="small"
+                sx={{ color: UI.textSecondary }}
+              />
+            </ListItemIcon>
+            Account Settings
+          </MenuItem>
+
+          {/* Logout */}
+          <MenuItem
+            onClick={handleLogout}
+            sx={{ py: 1.2, color: "error.main" }}
+          >
+            <ListItemIcon>
+              <LogoutRoundedIcon fontSize="small" color="error" />
+            </ListItemIcon>
+            Logout
           </MenuItem>
         </Menu>
       </Stack>

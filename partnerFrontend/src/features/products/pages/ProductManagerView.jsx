@@ -32,7 +32,7 @@ import {
 import { selectCategories } from "../../categories/slice/CategoriesSlice"
 import { ITEMS_PER_PAGE } from "../../../constants";
 import { ProductCard } from "../components/ProductCard";
-import { UI } from "../../admin/theme";
+import { UI } from "../../../theme/theme";
 
 const ProductManagerView = () => {
   const dispatch = useDispatch();

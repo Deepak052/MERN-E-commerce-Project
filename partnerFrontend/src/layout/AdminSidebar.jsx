@@ -32,7 +32,7 @@ const menuItems = [
   { text: "Brands", icon: <BrandingWatermarkRoundedIcon />, path: "/brands" },
   { text: "Categories", icon: <CategoryRoundedIcon />, path: "/categories" },
   { text: "Customers", icon: <PeopleAltRoundedIcon />, path: "/customers" },
-  { text: "Admins", icon: <BarChartRoundedIcon />, path: "/admins" }, 
+  // { text: "Admins", icon: <BarChartRoundedIcon />, path: "/admins" }, 
 ];
 
 const AdminSidebar = ({

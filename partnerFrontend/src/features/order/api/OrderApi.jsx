@@ -1,21 +1,20 @@
-import {axiosi} from '../../../config/axios'
+import { axiosi } from '../../../config/axios';
 
-
-export const createOrder=async(order)=>{
+export const createOrder = async (order) => {
     try {
-        const res=await axiosi.post("/orders",order)
-        return res.data
+        const res = await axiosi.post("/orders", order);
+        return res.data;
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error;
     }
-}
+};
 
 export const createRazorpayOrderSession = async (amountData) => {
   try {
     const res = await axiosi.post("/orders/razorpay/create", amountData);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
@@ -24,33 +23,34 @@ export const verifyAndCreateOrder = async (verificationData) => {
     const res = await axiosi.post("/orders/razorpay/verify", verificationData);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
-export const getOrderByUserId=async(id)=>{
+export const getOrderByUserId = async (id) => {
     try {
-        const res=await axiosi.get(`/orders/user/${id}`)
-        return res.data
+        const res = await axiosi.get(`/orders/user/${id}`);
+        return res.data;
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error;
     }
-}
+};
 
-export const getAllOrders=async()=>{
+// 🚨 FIX: Updated to hit the secure Admin endpoint!
+export const getAllOrders = async () => {
     try {
-        const res=await axiosi.get(`/orders`)
-        return res.data
+        const res = await axiosi.get(`/orders/admin`); 
+        return res.data;
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error;
     }
-}
+};
 
-export const updateOrderById=async(update)=>{
+export const updateOrderById = async (update) => {
     try {
-        const res=await axiosi.patch(`/orders/${update._id}`,update)
-        return res.data
+        const res = await axiosi.patch(`/orders/${update._id}`, update);
+        return res.data;
     } catch (error) {
-        throw error.response.data
+        throw error.response?.data || error;
     }
-}
+};

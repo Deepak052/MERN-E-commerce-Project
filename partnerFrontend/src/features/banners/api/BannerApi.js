@@ -3,7 +3,7 @@ import { axiosi } from "../../../config/axios";
 export const fetchAllBanners = async (admin = false) => {
   try {
     const queryString = admin ? "?admin=true" : "";
-    const res = await axiosi.get(`/api/banners${queryString}`);
+    const res = await axiosi.get(`/banners${queryString}`);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to fetch banners" };
@@ -12,7 +12,7 @@ export const fetchAllBanners = async (admin = false) => {
 
 export const getBannerById = async (id) => {
   try {
-    const res = await axiosi.get(`/api/banners/${id}`);
+    const res = await axiosi.get(`/banners/${id}`);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to fetch banner" };
@@ -21,7 +21,7 @@ export const getBannerById = async (id) => {
 
 export const addBanner = async (data) => {
   try {
-    const res = await axiosi.post("/api/banners", data);
+    const res = await axiosi.post("/banners", data);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to create banner" };
@@ -31,7 +31,7 @@ export const addBanner = async (data) => {
 export const updateBannerById = async (update) => {
   try {
     const { _id, ...rest } = update;
-    const res = await axiosi.patch(`/api/banners/${_id}`, rest);
+    const res = await axiosi.patch(`/banners/${_id}`, rest);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to update banner" };
@@ -40,7 +40,7 @@ export const updateBannerById = async (update) => {
 
 export const deleteBannerById = async (id) => {
   try {
-    const res = await axiosi.delete(`/api/banners/${id}`);
+    const res = await axiosi.delete(`/banners/${id}`);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to delete banner" };

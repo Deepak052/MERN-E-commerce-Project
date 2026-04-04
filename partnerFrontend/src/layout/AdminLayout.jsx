@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Box, Drawer, useMediaQuery, useTheme } from "@mui/material";
-import { UI } from "../features/admin/theme";
+import { UI } from "../theme/theme"; // Adjust path if needed
 import AdminSidebar from "./AdminSidebar";
+import AdminTopbar from "./AdminTopbar"; // 🚨 ADDED: Import the new Topbar
 
 const AdminLayout = ({
   children,
-  activeTab = "Admin Panel", 
-  setActiveTab = () => {}, 
+  activeTab = "Admin Panel",
+  setActiveTab = () => {},
   sidebarOpen: propSidebarOpen,
   setSidebarOpen: propSetSidebarOpen,
   isMobile: propIsMobile,
@@ -62,7 +63,13 @@ const AdminLayout = ({
           overflow: "hidden",
         }}
       >
-        
+        {/* 🚨 ADDED: The Topbar goes here! */}
+        <AdminTopbar
+          activeTab={activeTab}
+          isMobile={isMobile}
+          setSidebarOpen={setSidebarOpen}
+        />
+
         <Box sx={{ p: { xs: 2, md: 4 }, overflowY: "auto", flexGrow: 1 }}>
           {children}
         </Box>

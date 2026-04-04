@@ -46,6 +46,7 @@ function App() {
           path="/reset-password/:userId/:token"
           element={<ResetPassword />}
         />
+        
 
         {/* PROTECTED ADMIN ROUTES */}
         <Route

@@ -5,52 +5,57 @@ export const fetchLoggedInUserById = async (id) => {
     const res = await axiosi.get(`/users/${id}`);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
+
 export const updateUserById = async (update) => {
   try {
     const res = await axiosi.patch(`/users/${update._id}`, update);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
 // --- NEW ADMIN SPECIFIC APIs ---
+
 export const fetchAllCustomers = async () => {
   try {
-    const res = await axiosi.get("/admin/users");
+    // 🚨 FIX: Match the backend route exactly (/users/customers)
+    const res = await axiosi.get("/users/customers");
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
 export const updateCustomerById = async (update) => {
   try {
-    const res = await axiosi.patch(`/admin/users/${update._id}`, update);
+    // 🚨 FIX: The backend uses the generic /users/:id to update any user
+    const res = await axiosi.patch(`/users/${update._id}`, update);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
-
 export const fetchAllAdmins = async () => {
   try {
-    const res = await axiosi.get("/admin/users/store-admins");
+    // 🚨 FIX: Match the backend route exactly
+    const res = await axiosi.get("/users/store-admins");
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
 export const createStoreAdmin = async (adminData) => {
   try {
-    const res = await axiosi.post("/admin/users/create-admin", adminData);
+    // 🚨 FIX: Match the backend route exactly
+    const res = await axiosi.post("/users/create-admin", adminData);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };

@@ -2,19 +2,22 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Grid, Box, Typography, Button } from "@mui/material";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom"; // 🚨 ADDED: React Router hook
+
 import {
   fetchDashboardStatsAsync,
   selectDashboardStats,
 } from "../slice/DashboardSlice";
 import StatCard from "../components/StatCard";
-import StatusBadge from "../components/StatCard";
+import StatusBadge from "../../../components/ui/StatusBadge"; // Fixed import path assuming it's a global UI component
 import SalesChart from "../components/SalesChart";
 import CategoryChart from "../components/CategoryChart";
 import DataTable from "../../../components/ui/DataTable";
-import { UI } from "../../admin/theme";
+import { UI } from "../../../theme/theme";
 
-const DashboardView = ({ setActiveTab }) => {
+const DashboardView = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate(); // 🚨 ADDED: Initialize navigate
   const dashboardStats = useSelector(selectDashboardStats);
 
   useEffect(() => {
@@ -104,7 +107,8 @@ const DashboardView = ({ setActiveTab }) => {
           <Typography variant="h6" fontWeight={700}>
             Recent Orders
           </Typography>
-          <Button color="primary" onClick={() => setActiveTab("Orders")}>
+          {/* 🚨 FIX: Use navigate instead of setActiveTab */}
+          <Button color="primary" onClick={() => navigate("/orders")}>
             View All
           </Button>
         </Box>

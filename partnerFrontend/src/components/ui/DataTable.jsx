@@ -8,7 +8,7 @@ import {
   Paper,
   Typography,
 } from "@mui/material";
-import { UI } from "../../features/admin/theme";
+import { UI } from "../../theme/theme";
 
 const DataTable = ({ columns, data, emptyMessage = "No data found." }) => (
   <TableContainer
