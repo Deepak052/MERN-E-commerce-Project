@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { selectLoggedInUser, selectIsAuthChecked } from "../AuthSlice";
+import { selectLoggedInUser, selectIsAuthChecked } from "../slice/AuthSlice";
 import { Navigate } from "react-router-dom";
 
 export const Protected = ({ children, adminOnly = false }) => {

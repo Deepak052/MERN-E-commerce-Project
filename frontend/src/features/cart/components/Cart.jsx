@@ -24,9 +24,9 @@ import {
   resetCartItemRemoveStatus,
   selectCartItemRemoveStatus,
   selectCartItems,
-} from "../CartSlice";
+} from "../slice/CartSlice";
 import { CartItem } from "./CartItem";
-import { SHIPPING, TAXES } from "../../../constants";
+import { SHIPPING, TAXES } from "../../../constants/constants";
 import { toast } from "react-toastify";
 
 const UI = {

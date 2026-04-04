@@ -1,6 +1,5 @@
 import { useSelector } from "react-redux";
 import {
-  Navigate,
   Route,
   RouterProvider,
   createBrowserRouter,
@@ -10,43 +9,32 @@ import {
 import {
   selectIsAuthChecked,
   selectLoggedInUser,
-} from "./features/auth/AuthSlice";
+} from "./features/auth/slice/AuthSlice";
 import { Logout } from "./features/auth/components/Logout";
 import { Protected } from "./features/auth/components/Protected";
 
 import { useAuthCheck } from "./hooks/useAuth/useAuthCheck";
 import { useFetchLoggedInUserDetails } from "./hooks/useAuth/useFetchLoggedInUserDetails";
 
-import {
-  AddProductPage,
-  AdminOrdersPage,
-  CartPage,
-  CheckoutPage,
-  ForgotPasswordPage,
-  HomePage,
-  OrderSuccessPage,
-  OtpVerificationPage,
-  ProductDetailsPage,
-  ProductUpdatePage,
-  ResetPasswordPage,
-  SignupPage,
-  UserOrdersPage,
-  UserProfilePage,
-  WishlistPage,
-} from "./pages";
-import LoginPage from "./pages/LoginPage";
+// Auth Pages
+import { SignupPage } from "./features/auth/pages/SignupPage";
+import LoginPage from "./features/auth/pages/LoginPage";
+import { OtpVerificationPage } from "./features/auth/pages/OtpVerificationPage";
+import { ForgotPasswordPage } from "./features/auth/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./features/auth/pages/ResetPasswordPage";
 
-import { AdminDashboardPage } from "./pages/AdminDashboardPage";
+// Customer Pages
+import { HomePage } from "./features/home/pages/HomePage";
+import { ProductDetailsPage } from "./features/products/pages/ProductDetailsPage";
+import { CartPage } from "./features/cart/pages/CartPage";
+import { CheckoutPage } from "./features/checkout/pages/CheckoutPage";
+import { OrderSuccessPage } from "./features/order/components/OrderSuccessPage";
+import { UserOrdersPage } from "./features/order/pages/UserOrdersPage";
+import { UserProfilePage } from "./features/profile/pages/UserProfilePage";
+import { WishlistPage } from "./features/wishlist/pages/WishlistPage";
+
+// Global Pages
 import { NotFoundPage } from "./pages/NotFoundPage";
-import AdminLayout from "./features/admin/layout/AdminLayout";
-import { AddBrandView } from "./features/admin/views/AddBrandView";
-import CategoryManagerView from "./features/admin/views/CategoryManagerView";
-import { AddEditCategoryView } from "./features/admin/views/AddEditCategoryView";
-import { AddEditBannerView } from "./features/admin/views/AddEditBannerView";
-import BannerManagerView from "./features/admin/views/BannerManagerView";
-import CustomerManagerView from "./features/admin/views/CustomerManagerView";
-import { CustomerDetailView } from "./features/admin/views/CustomerDetailView";
-import AdminManagerView from "./features/admin/views/AdminManagerView";
 
 function App() {
   const isAuthChecked = useSelector(selectIsAuthChecked);
@@ -58,6 +46,9 @@ function App() {
   const routes = createBrowserRouter(
     createRoutesFromElements(
       <>
+        {/* ========================================== */}
+        {/* 🟢 PUBLIC ROUTES                           */}
+        {/* ========================================== */}
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verify-otp" element={<OtpVerificationPage />} />
@@ -66,11 +57,24 @@ function App() {
           path="/reset-password/:userId/:passwordResetToken"
           element={<ResetPasswordPage />}
         />
+
         <Route
           path="/logout"
           element={
             <Protected>
               <Logout />
+            </Protected>
+          }
+        />
+
+        {/* ========================================== */}
+        {/* 🛍️ PROTECTED CUSTOMER STOREFRONT ROUTES    */}
+        {/* ========================================== */}
+        <Route
+          path="/"
+          element={
+            <Protected>
+              <HomePage />
             </Protected>
           }
         />
@@ -82,221 +86,58 @@ function App() {
             </Protected>
           }
         />
-
-        {loggedInUser?.isAdmin ? (
-          <>
-            <Route
-              path="/admin/dashboard"
-              element={
-                <Protected>
-                  <AdminDashboardPage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/admin/product-update/:id"
-              element={
-                <Protected>
-                  <ProductUpdatePage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/admin/add-product"
-              element={
-                <Protected>
-                  <AddProductPage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/admin/orders"
-              element={
-                <Protected>
-                  <AdminOrdersPage />
-                </Protected>
-              }
-            />
-            <Route path="*" element={<Navigate to="/admin/dashboard" />} />
-          </>
-        ) : (
-          <>
-            <Route
-              path="/"
-              element={
-                <Protected>
-                  <HomePage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/cart"
-              element={
-                <Protected>
-                  <CartPage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <Protected>
-                  <UserProfilePage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/checkout"
-              element={
-                <Protected>
-                  <CheckoutPage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/order-success/:id"
-              element={
-                <Protected>
-                  <OrderSuccessPage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/orders"
-              element={
-                <Protected>
-                  <UserOrdersPage />
-                </Protected>
-              }
-            />
-            <Route
-              path="/wishlist"
-              element={
-                <Protected>
-                  <WishlistPage />
-                </Protected>
-              }
-            />
-          </>
-        )}
-
         <Route
-          path="/admin/add-brand"
+          path="/cart"
           element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Brands">
-                <AddBrandView />
-              </AdminLayout>
+            <Protected>
+              <CartPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <Protected>
+              <UserProfilePage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <Protected>
+              <CheckoutPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/order-success/:id"
+          element={
+            <Protected>
+              <OrderSuccessPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <Protected>
+              <UserOrdersPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/wishlist"
+          element={
+            <Protected>
+              <WishlistPage />
             </Protected>
           }
         />
 
-        <Route
-          path="/admin/brands/edit/:id"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Brands">
-                <AddBrandView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/categories"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Categories">
-                <CategoryManagerView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/categories/add"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Categories">
-                <AddEditCategoryView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/categories/edit/:id"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Categories">
-                <AddEditCategoryView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/banners"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Banners">
-                <BannerManagerView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/banners/add"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Banners">
-                <AddEditBannerView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-        <Route
-          path="/admin/banners/edit/:id"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Banners">
-                <AddEditBannerView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/customers"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Customers">
-                <CustomerManagerView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/customers/:id"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Customers">
-                <CustomerDetailView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-
-        <Route
-          path="/admin/personnel"
-          element={
-            <Protected adminOnly={true}>
-              <AdminLayout activeTab="Admins">
-                <AdminManagerView />
-              </AdminLayout>
-            </Protected>
-          }
-        />
-
+        {/* ========================================== */}
+        {/* ⚠️ CATCH-ALL 404 ROUTE                     */}
+        {/* ========================================== */}
         <Route path="*" element={<NotFoundPage />} />
       </>,
     ),

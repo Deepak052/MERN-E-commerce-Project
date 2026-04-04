@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { getOrderByUserIdAsync, resetOrderFetchStatus, selectOrderFetchStatus, selectOrders } from '../OrderSlice'
-import { selectLoggedInUser } from '../../auth/AuthSlice'
+import { getOrderByUserIdAsync, resetOrderFetchStatus, selectOrderFetchStatus, selectOrders } from '../slice/OrderSlice'
+import { selectLoggedInUser } from '../../auth/slice/AuthSlice'
 import { Button, IconButton, Paper, Stack, Typography, useMediaQuery, useTheme } from '@mui/material'
 import {Link} from 'react-router-dom'
-import { addToCartAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems } from '../../cart/CartSlice'
+import { addToCartAsync, resetCartItemAddStatus, selectCartItemAddStatus, selectCartItems } from '../../cart/slice/CartSlice'
 import LottieComponent from "lottie-react";
 import { loadingAnimation, noOrdersAnimation } from '../../../assets'
 import { toast } from 'react-toastify'

@@ -31,23 +31,26 @@ import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalance
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 
-// Redux
+// 🚨 FIX: Corrected Cross-Feature Imports
 import {
   addAddressAsync,
   selectAddressStatus,
   selectAddresses,
-} from "../../address/AddressSlice";
-import { selectLoggedInUser } from "../../auth/AuthSlice";
+} from "../../profile/slice/AddressSlice";
+import { selectLoggedInUser } from "../../auth/slice/AuthSlice";
 import {
   createOrderAsync,
   verifyAndCreateOrderAsync,
   selectCurrentOrder,
   selectOrderStatus,
-} from "../../order/OrderSlice";
-import { resetCartByUserIdAsync, selectCartItems } from "../../cart/CartSlice";
-import { createRazorpayOrderSession } from "../../order/OrderApi";
+} from "../../order/slice/OrderSlice";
+import {
+  resetCartByUserIdAsync,
+  selectCartItems,
+} from "../../cart/slice/CartSlice";
+import { createRazorpayOrderSession } from "../../order/api/OrderApi";
 import { Cart } from "../../cart/components/Cart";
-import { SHIPPING, TAXES } from "../../../constants";
+import { SHIPPING, TAXES } from "../../../constants/constants";
 
 const UI = {
   bg: "#f4f5f7",
@@ -121,7 +124,7 @@ export const Checkout = () => {
     if (addressStatus === "fulfilled") {
       reset();
       setIsAddingAddress(false);
-      // UX Improvement: Auto-select the newly added address (usually appended to the end of the array)
+      // Auto-select the newly added address
       if (addresses.length > 0) {
         setSelectedAddress(addresses[addresses.length - 1]);
       }
@@ -133,13 +136,13 @@ export const Checkout = () => {
   // Triggers redirect when an order is successfully created
   useEffect(() => {
     if (currentOrder && currentOrder?._id) {
-      dispatch(resetCartByUserIdAsync(loggedInUser?._id));
+      // 🚨 FIX: We don't need to pass the userId anymore because the backend reads the secure token!
+      dispatch(resetCartByUserIdAsync());
       navigate(`/order-success/${currentOrder?._id}`);
     }
-  }, [currentOrder, dispatch, loggedInUser, navigate]);
+  }, [currentOrder, dispatch, navigate]);
 
   const handleAddAddress = (data) => {
-    // Additional safeguard before dispatching
     if (!data.type || !data.street || !data.phoneNumber) {
       return toast.error("Please fill in all required fields.");
     }
@@ -148,7 +151,6 @@ export const Checkout = () => {
   };
 
   const handleCreateOrder = async () => {
-    // Extra validation fallback
     if (addresses.length === 0)
       return toast.error("Please add a delivery address first.");
     if (!selectedAddress)

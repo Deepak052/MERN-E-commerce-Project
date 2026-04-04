@@ -1,24 +1,22 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { logoutAsync, selectLoggedInUser } from '../AuthSlice'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { logoutAsync, selectLoggedInUser } from "../slice/AuthSlice";
+import { useNavigate } from "react-router-dom";
 
 export const Logout = () => {
-    const dispatch=useDispatch()
-    const loggedInUser=useSelector(selectLoggedInUser)
-    const navigate=useNavigate()
+  const dispatch = useDispatch();
+  const loggedInUser = useSelector(selectLoggedInUser);
+  const navigate = useNavigate();
 
-    useEffect(()=>{
-        dispatch(logoutAsync())
-    },[])
+  useEffect(() => {
+    dispatch(logoutAsync());
+  }, [dispatch]);
 
-    useEffect(()=>{
-        if(!loggedInUser){
-            navigate("/login")
-        }
-    },[loggedInUser])
+  useEffect(() => {
+    if (!loggedInUser) {
+      navigate("/login");
+    }
+  }, [loggedInUser, navigate]);
 
-  return (
-    <></>
-  )
-}
+  return <></>;
+};
