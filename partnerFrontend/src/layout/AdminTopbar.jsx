@@ -29,12 +29,12 @@ import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import { UI } from "../theme/theme";
 import {
   logoutAsync,
-  selectLoggedInUser,
+  selectLoggedInAdmin,
 } from "../features/auth/slice/AuthSlice";
 
 const AdminTopbar = ({ activeTab, isMobile, setSidebarOpen }) => {
   const dispatch = useDispatch();
-  const user = useSelector(selectLoggedInUser);
+  const user = useSelector(selectLoggedInAdmin);
 
   // --- Menu States ---
   const [createAnchorEl, setCreateAnchorEl] = useState(null);

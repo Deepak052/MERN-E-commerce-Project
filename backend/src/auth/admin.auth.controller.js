@@ -39,7 +39,7 @@ exports.adminLogin = async (req, res) => {
       secure: process.env.PRODUCTION === "true",
     });
 
-    return res.status(200).json(secureInfo);
+    return res.status(200).json({ ...secureInfo, role: existingAdmin.role });
   } catch (error) {
     res.status(500).json({ message: "Admin Login Error" });
   }
@@ -68,7 +68,10 @@ exports.adminVerifyOtp = async (req, res) => {
         { isVerified: true },
         { new: true },
       );
-      return res.status(200).json(sanitizeUser(verifiedAdmin));
+      // Inside adminVerifyOtp:
+      return res
+        .status(200)
+        .json({ ...sanitizeUser(verifiedAdmin), role: verifiedAdmin.role });
     }
 
     return res.status(400).json({ message: "Otp is invalid" });
@@ -196,7 +199,11 @@ exports.adminCheckAuth = async (req, res) => {
       (req.user.role === "Admin" || req.user.role === "SuperAdmin")
     ) {
       const admin = await Admin.findById(req.user._id);
-      if (admin) return res.status(200).json(sanitizeUser(admin));
+      // Inside adminCheckAuth:
+      if (admin)
+        return res
+          .status(200)
+          .json({ ...sanitizeUser(admin), role: admin.role });
     }
     res.sendStatus(401);
   } catch (error) {

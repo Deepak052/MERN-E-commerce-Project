@@ -19,6 +19,10 @@ const productSchema = new Schema(
     // Inventory
     stockQuantity: { type: Number, required: true, min: 0, default: 0 },
 
+    isDealOfTheDay: { type: Boolean, default: false },
+    isFlashSale: { type: Boolean, default: false },
+    soldCount: { type: Number, default: 0 },
+
     // Media
     thumbnail: { type: String, required: true },
     images: { type: [String], default: [] },

@@ -81,6 +81,7 @@ export const ProductUpdate = () => {
         thumbnail: selectedProduct.thumbnail,
         brand: selectedProduct.brand?._id || "",
         category: selectedProduct.category?._id || "",
+        isDealOfTheDay: selectedProduct.isDealOfTheDay || false,
         ...selectedProduct.images.reduce((acc, img, i) => {
           acc[`image${i}`] = img;
           return acc;
@@ -290,6 +291,29 @@ export const ProductUpdate = () => {
             helperText={errors.stockQuantity?.message}
             InputLabelProps={{ shrink: true }}
           />
+          {/* ========================================== */}
+          {/* 🌟 VISIBILITY & PROMOTIONS */}
+          {/* ========================================== */}
+          <Box
+            sx={{
+              p: 2,
+              border: "1px solid #e5e7eb",
+              borderRadius: 2,
+              bgcolor: "#f9fafb",
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Switch color="warning" {...register("isDealOfTheDay")} />
+              }
+              label={
+                <Typography variant="body2" fontWeight={700}>
+                  Promote as "Deal of the Day"
+                </Typography>
+              }
+              sx={{ m: 0 }}
+            />
+          </Box>
 
           {/* ========================================== */}
           {/* 🖼️ CLOUDINARY THUMBNAIL UPLOAD UI */}

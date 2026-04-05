@@ -1,41 +1,36 @@
 require("dotenv").config();
-const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const User = require("./src/users/user.model"); // Adjust path if needed
-const { connectToDB } = require("./config/db"); // Adjust path if needed
+const Admin = require("./src/admins/admin.model");
+const { connectToDB } = require("./config/db");
 
 const seedAdmin = async () => {
   try {
     await connectToDB();
 
-    // 1. Check if an admin already exists to prevent accidental duplicates
-    const existingAdmin = await User.findOne({ isAdmin: true });
+    // 🚨 FIX: Check for standard "Admin"
+    const existingAdmin = await Admin.findOne({ role: "Admin" });
+
     if (existingAdmin) {
-      console.log("⚠️ An Admin already exists. Seeding aborted.",existingAdmin);
+      console.log(
+        "⚠️ An Admin already exists in the Admin collection. Seeding aborted.",
+      );
       process.exit(0);
     }
 
-    // 2. Hash the default password
-    const hashedPassword = await bcrypt.hash(
-      process.env.CLIENT_ADMIN_PASSWORD,
-      10,
-    );
+    const password = process.env.CLIENT_ADMIN_PASSWORD || "Admin@123";
+    const email = process.env.CLIENT_ADMIN_EMAIL || "admin@shopsphere.com";
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Create the first admin
-    const firstAdmin = new User({
+    const firstAdmin = new Admin({
       name: "Store Owner",
-      email: process.env.CLIENT_ADMIN_EMAIL, 
+      email: email,
       password: hashedPassword,
-      isAdmin: true,
-      isVerified: true, // Bypass OTP
+      role: "Admin", // 🚨 FIX: Set to standard Admin
+      isBlocked: false,
     });
 
     await firstAdmin.save();
-
-    console.log("✅ First Admin created successfully!");
-    console.log("📧 Email: ",process.env.CLIENT_ADMIN_EMAIL);
-    console.log("🔑 Password:",process.env.CLIENT_ADMIN_PASSWORD);
-
+    console.log("✅ Store Owner Admin created successfully!");
     process.exit(0);
   } catch (error) {
     console.error("❌ Error seeding admin:", error);

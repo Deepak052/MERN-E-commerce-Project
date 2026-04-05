@@ -35,8 +35,8 @@ const initialState = {
 // 🚨 THUNKS (FIXED WITH rejectWithValue)
 // ==========================================
 
-export const loginAsync = createAsyncThunk(
-  "auth/loginAsync",
+export const loginAdminAsync = createAsyncThunk(
+  "auth/loginAdminAsync",
   async (cred, { rejectWithValue }) => {
     try {
       const res = await login(cred);
@@ -144,14 +144,14 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // LOGIN
-      .addCase(loginAsync.pending, (state) => {
+      .addCase(loginAdminAsync.pending, (state) => {
         state.loginStatus = "pending";
       })
-      .addCase(loginAsync.fulfilled, (state, action) => {
+      .addCase(loginAdminAsync.fulfilled, (state, action) => {
         state.loginStatus = "fullfilled";
         state.loggedInUser = action.payload;
       })
-      .addCase(loginAsync.rejected, (state, action) => {
+      .addCase(loginAdminAsync.rejected, (state, action) => {
         state.loginStatus = "rejected";
         // 🚨 FIX: Extract error from action.payload instead of action.error
         state.loginError = action.payload || action.error;
@@ -219,7 +219,7 @@ const authSlice = createSlice({
 
 export const selectAuthStatus = (state) => state.AuthSlice.status;
 export const selectAuthErrors = (state) => state.AuthSlice.errors;
-export const selectLoggedInUser = (state) => state.AuthSlice.loggedInUser;
+export const selectLoggedInAdmin = (state) => state.AuthSlice.loggedInUser;
 export const selectAuthSuccessMessage = (state) =>
   state.AuthSlice.successMessage;
 export const selectIsAuthChecked = (state) => state.AuthSlice.isAuthChecked;

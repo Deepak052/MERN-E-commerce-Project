@@ -16,62 +16,62 @@ import { motion } from "framer-motion";
 import LoadingButton from "@mui/lab/LoadingButton";
 
 import {
-  selectLoggedInUser,
-  loginAsync,
-  selectLoginStatus,
-  selectLoginError,
-  clearLoginError,
-  resetLoginStatus,
+  selectLoggedInAdmin, 
+  loginAdminAsync, 
+  selectAuthStatus,
+  selectAuthErrors,
+  resetAuthStatus,
 } from "../slice/AuthSlice";
 
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 
 const Login = () => {
   const dispatch = useDispatch();
-  const status = useSelector(selectLoginStatus);
-  const error = useSelector(selectLoginError);
-  const loggedInUser = useSelector(selectLoggedInUser);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm();
-  const navigate = useNavigate();
-  const theme = useTheme();
-  const is480 = useMediaQuery(theme.breakpoints.down(480));
-
-  // Directs valid admins to the dashboard
-  useEffect(() => {
-    if (loggedInUser) {
-      if (loggedInUser.isAdmin || loggedInUser.isSuperAdmin) {
-        navigate("/");
-      } else {
-        toast.error("Unauthorized. Admin access required.");
+    const status = useSelector(selectAuthStatus);
+    const error = useSelector(selectAuthErrors);
+    const loggedInAdmin = useSelector(selectLoggedInAdmin);
+    
+    const { register, handleSubmit, reset, formState: { errors } } = useForm();
+    const navigate = useNavigate();
+    const theme = useTheme();
+    const is480 = useMediaQuery(theme.breakpoints.down(480));
+  
+    // 1. Fix Navigation Logic for Multi-Tenant Architecture
+    useEffect(() => {
+      if (loggedInAdmin) {
+        // 🚨 FIX: Check 'role' string instead of 'isAdmin' boolean
+        if (loggedInAdmin.role === "Admin" || loggedInAdmin.role === "SuperAdmin") {
+          navigate("/");
+        } else {
+          // This case should technically be impossible with your new backend separation,
+          // but it's good for safety.
+          toast.error("Unauthorized. Partner access required.");
+        }
       }
-    }
-  }, [loggedInUser, navigate]);
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error.message);
-    }
-  }, [error]);
-
-  useEffect(() => {
-    if (status === "fullfilled" && loggedInUser) {
-      toast.success(`Welcome back, ${loggedInUser.name}`);
-      reset();
-    }
-    return () => {
-      dispatch(clearLoginError());
-      dispatch(resetLoginStatus());
+    }, [loggedInAdmin, navigate]);
+  
+    // 2. Fix Success Handling & Typo
+    useEffect(() => {
+      // 🚨 FIX: Changed "fullfilled" to "fulfilled"
+      if (status === "fulfilled" && loggedInAdmin) {
+        toast.success(`Welcome back, ${loggedInAdmin.name}`);
+        reset();
+      }
+    }, [status, loggedInAdmin, reset]);
+  
+    // 3. Fix Error Handling & Cleanup
+    useEffect(() => {
+      if (error) {
+        toast.error(error.message || "Login failed");
+      }
+      return () => {
+        dispatch(resetAuthStatus());
+      };
+    }, [error, dispatch]);
+  
+    const handleLogin = (data) => {
+      dispatch(loginAdminAsync(data)); // 🚨 Calling Admin-specific thunk
     };
-  }, [status, loggedInUser, dispatch, reset]);
-
-  const handleLogin = (data) => {
-    dispatch(loginAsync(data));
-  };
 
   return (
     <Stack

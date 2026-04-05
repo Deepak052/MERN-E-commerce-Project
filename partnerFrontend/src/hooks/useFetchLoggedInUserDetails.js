@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  selectLoggedInUser,
+  selectLoggedInAdmin,
   logoutAsync,
 } from "../features/auth/slice/AuthSlice";
 import { fetchAllCategoriesAsync } from "../features/categories/slice/CategoriesSlice";
@@ -9,13 +9,14 @@ import { fetchAllBrandsAsync } from "../features/brands/slice/BrandSlice";
 import { fetchLoggedInUserByIdAsync } from "../features/customers/slice/UserSlice";
 
 export const useFetchLoggedInUserDetails = () => {
-  const loggedInUser = useSelector(selectLoggedInUser);
+  const loggedInUser = useSelector(selectLoggedInAdmin);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (loggedInUser && loggedInUser?.isVerified) {
-      // SECURITY: If a normal customer accidentally logs into the Admin Panel, kick them out
-      if (!loggedInUser.isAdmin && !loggedInUser.isSuperAdmin) {
+    // Note: Assuming Admins don't strictly use isVerified, or if they do, keep it.
+    if (loggedInUser) {
+      // 🚨 FIX: SECURITY Check using the 'role' string
+      if (loggedInUser.role !== "Admin" && loggedInUser.role !== "SuperAdmin") {
         dispatch(logoutAsync());
         return;
       }

@@ -1,4 +1,5 @@
-const Product = require("./product.model"); // Updated import path
+const Product = require("./product.model"); 
+const Order = require("../orders/order.model");
 
 // ==========================================
 // 🔴 ADMIN CONTROLLERS
@@ -227,5 +228,156 @@ exports.getByIdOrSlug = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error getting product details", error: error.message });
+  }
+};
+
+exports.getNewArrivals = async (req, res) => {
+  try {
+    // Optional: Allow the frontend to request a specific number of items (default 10)
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Fetch products sorted by creation date (newest first)
+    // Note: Add { deleted: false } to the find() query if you use soft deletes
+    const newArrivals = await Product.find()
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    res.status(200).json(newArrivals);
+  } catch (error) {
+    console.error("Fetch New Arrivals Error:", error);
+    res.status(500).json({ message: "Failed to fetch new arrivals" });
+  }
+};
+
+exports.getDealsOfTheDay = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Fetch only products where the admin has toggled isDealOfTheDay to true
+    const deals = await Product.find({ isDealOfTheDay: true })
+      .sort({ updatedAt: -1 }) // Show recently updated deals first
+      .limit(limit);
+
+    res.status(200).json(deals);
+  } catch (error) {
+    console.error("Fetch Deals Error:", error);
+    res.status(500).json({ message: "Failed to fetch deals of the day" });
+  }
+};
+
+exports.getExploreMore = async (req, res) => {
+  try {
+    // Default to 12 products if the frontend doesn't specify a limit
+    const limit = parseInt(req.query.limit) || 12;
+
+    // Use MongoDB's $sample aggregation to grab a randomized set of products.
+    // This keeps the homepage fresh on every reload!
+    const exploreProducts = await Product.aggregate([
+      { $match: { isActive: true } }, // 1. Only pick active products
+      { $sample: { size: limit } }, // 2. Randomly select the specified amount
+    ]);
+
+    res.status(200).json(exploreProducts);
+  } catch (error) {
+    console.error("Explore More Error:", error);
+    res.status(500).json({ message: "Failed to fetch explore products" });
+  }
+};
+
+// Sorts by the highest `soldCount`
+exports.getBestSellers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const bestSellers = await Product.find({ isActive: true })
+      .sort({ soldCount: -1 }) // -1 means highest number first
+      .limit(limit);
+    
+    res.status(200).json(bestSellers);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch best sellers" });
+  }
+};
+
+// 2. BUDGET PICKS
+// Fetches active products strictly under a certain price point
+exports.getBudgetPicks = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const maxPrice = parseInt(req.query.maxPrice) || 50; // Default to items under $50
+
+    const budgetPicks = await Product.find({ 
+      isActive: true, 
+      basePrice: { $lte: maxPrice } // $lte = Less than or equal to
+    })
+      .sort({ basePrice: 1 }) // 1 means lowest price first
+      .limit(limit);
+    
+    res.status(200).json(budgetPicks);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch budget picks" });
+  }
+};
+
+// 3. FLASH SALE
+// Fetches products with the flash sale flag enabled
+exports.getFlashSale = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const flashSales = await Product.find({ isActive: true, isFlashSale: true })
+      .limit(limit);
+    
+    res.status(200).json(flashSales);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch flash sales" });
+  }
+};
+
+// RECOMMENDED FOR YOU (Requires Logged-In User)
+// A lightweight recommendation engine based on the user's past order categories
+exports.getRecommendations = async (req, res) => {
+  try {
+    const userId = req.user._id; 
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Step A: Find the user's most recent orders to see what they like
+    const recentOrders = await Order.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate("items.product");
+
+    let preferredCategories = [];
+
+    if (recentOrders.length > 0) {
+      // Extract unique category IDs from their recent purchases
+      recentOrders.forEach(order => {
+        order.items.forEach(item => {
+          if (item.product && item.product.category) {
+            preferredCategories.push(item.product.category.toString());
+          }
+        });
+      });
+      preferredCategories = [...new Set(preferredCategories)]; 
+    }
+
+    let recommendations;
+
+    if (preferredCategories.length > 0) {
+      // Step B: Find random products from their preferred categories
+      recommendations = await Product.aggregate([
+        { $match: { isActive: true, category: { $in: preferredCategories } } },
+        { $sample: { size: limit } }
+      ]);
+    } else {
+      // Step C: Fallback - if they have no order history, just show popular random items
+      recommendations = await Product.aggregate([
+        { $match: { isActive: true } },
+        { $sample: { size: limit } }
+      ]);
+    }
+
+    res.status(200).json(recommendations);
+  } catch (error) {
+    console.error("Recommendations Error:", error);
+    res.status(500).json({ message: "Failed to fetch recommendations" });
   }
 };

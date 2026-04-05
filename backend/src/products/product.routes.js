@@ -13,6 +13,14 @@ const { requireAdmin } = require("../../middlewares/requireAdmin");
 router.get("/", productController.getAllPublic);
 router.get("/new-arrivals", productController.getNewArrivals);
 router.get("/search-suggestions", productController.getSearchSuggestions);
+router.get("/deals", productController.getDealsOfTheDay);
+router.get("/explore", productController.getExploreMore);
+router.get("/best-sellers", productController.getBestSellers);
+router.get("/budget-picks", productController.getBudgetPicks);
+router.get("/flash-sale", productController.getFlashSale);
+
+// Protect the recommendations route so only logged-in users can hit it
+router.get("/recommended", verifyToken, productController.getRecommendations);
 
 // ==========================================
 // 🔴 ADMIN ROUTES (Protected)

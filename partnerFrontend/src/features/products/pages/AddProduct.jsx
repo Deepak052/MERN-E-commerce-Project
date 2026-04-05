@@ -78,6 +78,7 @@ export const AddProduct = () => {
   } = useForm({
     defaultValues: {
       isActive: true,
+      isDealOfTheDay: false,
       discountPercentage: 0,
       stockQuantity: 0,
       attributes: [], // Initializes dynamic attributes array
@@ -166,6 +167,7 @@ export const AddProduct = () => {
         keywords: keywordsArray,
       },
       isActive: data.isActive,
+      isDealOfTheDay: data.isDealOfTheDay,
     };
 
     dispatch(addProductAsync(newProduct));
@@ -548,6 +550,9 @@ export const AddProduct = () => {
                     border: UI.border,
                     borderRadius: 2,
                     bgcolor: "#f9fafb",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
                   }}
                 >
                   <FormControlLabel
@@ -561,6 +566,19 @@ export const AddProduct = () => {
                     label={
                       <Typography variant="body2" fontWeight={700}>
                         Active on Store
+                      </Typography>
+                    }
+                    sx={{ m: 0 }}
+                  />
+
+                  {/* 🚨 NEW: Deal of the Day Switch */}
+                  <FormControlLabel
+                    control={
+                      <Switch color="warning" {...register("isDealOfTheDay")} />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={700}>
+                        Make Deal of the Day
                       </Typography>
                     }
                     sx={{ m: 0 }}
