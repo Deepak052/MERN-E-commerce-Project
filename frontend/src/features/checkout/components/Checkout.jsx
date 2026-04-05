@@ -189,7 +189,7 @@ export const Checkout = () => {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: razorpayOrder.amount,
           currency: razorpayOrder.currency,
-          name: "MERN SHOP",
+          name: "Shopsphere",
           description: "Secure Payment",
           order_id: razorpayOrder.id,
           handler: async function (response) {

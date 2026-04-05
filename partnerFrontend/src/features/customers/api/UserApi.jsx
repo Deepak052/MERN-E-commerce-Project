@@ -54,7 +54,7 @@ export const createStoreAdmin = async (adminData) => {
   try {
     // 🚨 FIX: Match the backend route exactly
     const res = await axiosi.post("/users/create-admin", adminData);
-    return res.data;
+    return res.data;er
   } catch (error) {
     throw error.response?.data || error;
   }

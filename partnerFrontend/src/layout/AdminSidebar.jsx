@@ -74,7 +74,7 @@ const AdminSidebar = ({
           color={UI.textMain}
           letterSpacing="-0.5px"
         >
-          Mern Admin
+          Shopsphere Admin
         </Typography>
       </Box>
       <List sx={{ px: 2, flexGrow: 1 }}>

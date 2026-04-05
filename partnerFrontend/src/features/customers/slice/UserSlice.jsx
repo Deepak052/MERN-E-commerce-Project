@@ -1,11 +1,12 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+// 🚨 Ensure this points to the API file we created for the Admin app
 import {
   createStoreAdmin,
   fetchAllAdmins,
   fetchAllCustomers,
-  fetchLoggedInUserById,
+ // Used to fetch the Admin's own profile
   updateCustomerById,
-  updateUserById,
+  // updateUserById, // Used to update the Admin's own profile
 } from "../api/UserApi";
 
 const initialState = {
@@ -14,56 +15,77 @@ const initialState = {
   errors: null,
   successMessage: null,
 
-  // ✅ add missing states
+  // Admin-specific management states
   customers: [],
   customerFetchStatus: "idle",
   storeAdmins: [],
 };
 
-// ================= THUNKS =================
+// ================= THUNKS (FIXED WITH rejectWithValue) =================
 
 export const fetchLoggedInUserByIdAsync = createAsyncThunk(
   "user/fetchLoggedInUserByIdAsync",
-  async (id) => {
-    const userInfo = await fetchLoggedInUserById(id);
-    return userInfo;
+  async (id, { rejectWithValue }) => {
+    try {
+      return await fetchLoggedInUserById(id);
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
 export const updateUserByIdAsync = createAsyncThunk(
   "user/updateUserByIdAsync",
-  async (update) => {
-    const updatedUser = await updateUserById(update);
-    return updatedUser;
+  async (update, { rejectWithValue }) => {
+    try {
+      return await updateUserById(update);
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
 export const fetchAllCustomersAsync = createAsyncThunk(
   "user/fetchAllCustomers",
-  async () => {
-    return await fetchAllCustomers();
+  async (_, { rejectWithValue }) => {
+    try {
+      return await fetchAllCustomers();
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
 export const updateCustomerByIdAsync = createAsyncThunk(
   "user/updateCustomerById",
-  async (update) => {
-    return await updateCustomerById(update);
+  async (update, { rejectWithValue }) => {
+    try {
+      return await updateCustomerById(update);
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
 export const fetchAllAdminsAsync = createAsyncThunk(
   "user/fetchAllAdmins",
-  async () => {
-    return await fetchAllAdmins();
+  async (_, { rejectWithValue }) => {
+    try {
+      return await fetchAllAdmins();
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
-// ❌ BUG FIXED HERE (missing closing bracket earlier)
 export const createStoreAdminAsync = createAsyncThunk(
   "user/createStoreAdmin",
-  async (data) => {
-    return await createStoreAdmin(data);
+  async (data, { rejectWithValue }) => {
+    try {
+      return await createStoreAdmin(data);
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
@@ -72,10 +94,14 @@ export const createStoreAdminAsync = createAsyncThunk(
 const userSlice = createSlice({
   name: "UserSlice",
   initialState,
-  reducers: {},
+  reducers: {
+    clearUserErrors: (state) => {
+      state.errors = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
-      // ===== USER =====
+      // ===== LOGGED IN ADMIN PROFILE =====
       .addCase(fetchLoggedInUserByIdAsync.pending, (state) => {
         state.status = "pending";
       })
@@ -85,7 +111,7 @@ const userSlice = createSlice({
       })
       .addCase(fetchLoggedInUserByIdAsync.rejected, (state, action) => {
         state.status = "rejected";
-        state.errors = action.error;
+        state.errors = action.payload || action.error;
       })
 
       .addCase(updateUserByIdAsync.pending, (state) => {
@@ -97,10 +123,10 @@ const userSlice = createSlice({
       })
       .addCase(updateUserByIdAsync.rejected, (state, action) => {
         state.status = "rejected";
-        state.errors = action.error;
+        state.errors = action.payload || action.error;
       })
 
-      // ===== CUSTOMERS =====
+      // ===== CUSTOMERS MANAGEMENT =====
       .addCase(fetchAllCustomersAsync.pending, (state) => {
         state.customerFetchStatus = "pending";
       })
@@ -108,11 +134,16 @@ const userSlice = createSlice({
         state.customerFetchStatus = "fulfilled";
         state.customers = action.payload;
       })
-      .addCase(fetchAllCustomersAsync.rejected, (state) => {
+      .addCase(fetchAllCustomersAsync.rejected, (state, action) => {
         state.customerFetchStatus = "rejected";
+        state.errors = action.payload || action.error;
       })
 
+      .addCase(updateCustomerByIdAsync.pending, (state) => {
+        state.status = "pending";
+      })
       .addCase(updateCustomerByIdAsync.fulfilled, (state, action) => {
+        state.status = "fulfilled";
         const index = state.customers.findIndex(
           (c) => c._id === action.payload._id,
         );
@@ -120,18 +151,41 @@ const userSlice = createSlice({
           state.customers[index] = action.payload;
         }
       })
+      .addCase(updateCustomerByIdAsync.rejected, (state, action) => {
+        state.status = "rejected";
+        state.errors = action.payload || action.error;
+      })
 
-      // ===== ADMINS =====
+      // ===== STORE ADMINS MANAGEMENT =====
+      .addCase(fetchAllAdminsAsync.pending, (state) => {
+        state.status = "pending";
+      })
       .addCase(fetchAllAdminsAsync.fulfilled, (state, action) => {
+        state.status = "fulfilled";
         state.storeAdmins = action.payload;
       })
+      .addCase(fetchAllAdminsAsync.rejected, (state, action) => {
+        state.status = "rejected";
+        state.errors = action.payload || action.error;
+      })
+
+      .addCase(createStoreAdminAsync.pending, (state) => {
+        state.status = "pending";
+      })
       .addCase(createStoreAdminAsync.fulfilled, (state, action) => {
-        state.storeAdmins.unshift(action.payload);
+        state.status = "fulfilled";
+        state.storeAdmins.unshift(action.payload); // Add new admin to the top of the list
+      })
+      .addCase(createStoreAdminAsync.rejected, (state, action) => {
+        state.status = "rejected";
+        state.errors = action.payload || action.error;
       });
   },
 });
 
-// ================= SELECTORS =================
+// ================= ACTIONS & SELECTORS =================
+
+export const { clearUserErrors } = userSlice.actions;
 
 export const selectUserStatus = (state) => state.UserSlice.status;
 export const selectUserInfo = (state) => state.UserSlice.userInfo;
@@ -144,7 +198,5 @@ export const selectCustomerFetchStatus = (state) =>
   state.UserSlice.customerFetchStatus;
 
 export const selectStoreAdmins = (state) => state.UserSlice.storeAdmins;
-
-// ================= EXPORT =================
 
 export default userSlice.reducer;

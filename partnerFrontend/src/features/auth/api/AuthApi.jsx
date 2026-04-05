@@ -2,45 +2,51 @@ import { axiosi } from "../../../config/axios";
 
 export const login = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/login", cred);
+    // 🚨 FIX: Points to the separated Admin auth route
+    const res = await axiosi.post("/auth/admin/login", cred);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    // 🚨 FIX: Added optional chaining fallback for robust error handling
+    throw error.response?.data || error;
   }
 };
 
 export const forgotPassword = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/forgot-password", cred);
+    // 🚨 FIX: Points to the separated Admin auth route
+    const res = await axiosi.post("/auth/admin/forgot-password", cred);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
 export const resetPassword = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/reset-password", cred);
+    // 🚨 FIX: Points to the separated Admin auth route
+    const res = await axiosi.post("/auth/admin/reset-password", cred);
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
 export const checkAuth = async () => {
   try {
-    const res = await axiosi.get("/auth/check-auth");
+    // 🚨 FIX: Points to the separated Admin auth route
+    const res = await axiosi.get("/auth/admin/check-auth");
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };
 
 export const logout = async () => {
   try {
-    const res = await axiosi.get("/auth/logout");
+    // 🚨 FIX: Points to the separated Admin auth route
+    const res = await axiosi.get("/auth/admin/logout");
     return res.data;
   } catch (error) {
-    throw error.response.data;
+    throw error.response?.data || error;
   }
 };

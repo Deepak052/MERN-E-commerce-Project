@@ -139,7 +139,7 @@ export const Navbar = ({ isProductList = false }) => {
               display: { xs: "none", sm: "block" },
             }}
           >
-            MERN SHOP
+            Shopsphere
           </Typography>
         </Stack>
 

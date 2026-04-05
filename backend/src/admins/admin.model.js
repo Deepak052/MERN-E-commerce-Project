@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const userSchema = new Schema(
+const adminSchema = new Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, unique: true, required: true },
+    email: { type: String, unique: true, required: true }, 
     password: { type: String, required: true },
 
-    // Verification
-    isVerified: { type: Boolean, default: false },
+    // Roles
+    role: { type: String, enum: ["Admin", "SuperAdmin"], default: "Admin" },
 
     // Security
     isBlocked: { type: Boolean, default: false },
@@ -19,4 +19,4 @@ const userSchema = new Schema(
   },
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("Admin", adminSchema);

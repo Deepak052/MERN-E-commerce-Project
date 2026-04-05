@@ -91,7 +91,7 @@ const Login = () => {
               sx={{ wordBreak: "break-word" }}
               fontWeight={600}
             >
-              Mern Shop
+              Shopsphere
             </Typography>
             <Typography
               alignSelf={"flex-end"}

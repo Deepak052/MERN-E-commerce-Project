@@ -2,7 +2,8 @@ import { axiosi } from "../../../config/axios";
 
 export const signup = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/signup", cred);
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.post("/auth/user/signup", cred);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -11,7 +12,8 @@ export const signup = async (cred) => {
 
 export const login = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/login", cred);
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.post("/auth/user/login", cred);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -20,7 +22,8 @@ export const login = async (cred) => {
 
 export const verifyOtp = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/verify-otp", cred);
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.post("/auth/user/verify-otp", cred);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -29,7 +32,8 @@ export const verifyOtp = async (cred) => {
 
 export const resendOtp = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/resend-otp", cred);
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.post("/auth/user/resend-otp", cred);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -38,7 +42,8 @@ export const resendOtp = async (cred) => {
 
 export const forgotPassword = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/forgot-password", cred);
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.post("/auth/user/forgot-password", cred);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -47,7 +52,8 @@ export const forgotPassword = async (cred) => {
 
 export const resetPassword = async (cred) => {
   try {
-    const res = await axiosi.post("/auth/reset-password", cred);
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.post("/auth/user/reset-password", cred);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -56,7 +62,8 @@ export const resetPassword = async (cred) => {
 
 export const checkAuth = async () => {
   try {
-    const res = await axiosi.get("/auth/check-auth");
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.get("/auth/user/check-auth");
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -65,7 +72,8 @@ export const checkAuth = async () => {
 
 export const logout = async () => {
   try {
-    const res = await axiosi.get("/auth/logout");
+    // 🚨 FIX: Points to the separated Customer auth route
+    const res = await axiosi.get("/auth/user/logout");
     return res.data;
   } catch (error) {
     throw error.response?.data || error;

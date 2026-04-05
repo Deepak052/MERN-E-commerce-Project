@@ -60,7 +60,7 @@ export const Signup = () => {
   useEffect(() => {
     if (status === "fullfilled") {
       toast.success(
-        "Welcome! Verify your email to start shopping on mern-ecommerce.",
+        "Welcome! Verify your email to start shopping on Shopsphere",
       );
       reset();
     }
@@ -101,7 +101,7 @@ export const Signup = () => {
               sx={{ wordBreak: "break-word" }}
               fontWeight={600}
             >
-              Mern Shop
+              Shopsphere
             </Typography>
             <Typography
               alignSelf={"flex-end"}

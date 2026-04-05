@@ -11,7 +11,7 @@ export const addAddress = async (address) => {
 
 export const fetchAddressByUserId = async (id) => {
   try {
-    const res = await axiosi.get(`/address/user/${id}`);
+    const res = await axiosi.get(`/address`);
     return res.data;
   } catch (error) {
     throw error.response?.data || error;
