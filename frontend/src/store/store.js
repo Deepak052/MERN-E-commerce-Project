@@ -11,18 +11,21 @@ import ReviewSlice from "../features/review/slice/ReviewSlice";
 import OrderSlice from "../features/order/slice/OrderSlice";
 import WishlistSlice from "../features/wishlist/slice/WishlistSlice";
 import BannerSlice from "../features/banners/slice/BannerSlice";
-
+import HomeSlice from "../features/home/slice/HomeSlice";
+import categorySlice from "../features/products/slice/CategoriesSlice"
 export const store = configureStore({
   reducer: {
     AuthSlice,
     ProductSlice,
     UserSlice,
     BrandSlice,
+    categorySlice,
     CartSlice,
     AddressSlice,
     ReviewSlice,
     OrderSlice,
     WishlistSlice,
     BannerSlice,
+    HomeSlice,
   },
 });

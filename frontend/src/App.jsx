@@ -35,6 +35,9 @@ import { WishlistPage } from "./features/wishlist/pages/WishlistPage";
 
 // Global Pages
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ProductList } from "./features/products/pages/ProductList";
+import { OrderDetails } from "./features/order/components/OrderDetails";
+import { TrackOrder } from "./features/order/components/TrackOrder";
 
 function App() {
   const isAuthChecked = useSelector(selectIsAuthChecked);
@@ -87,6 +90,14 @@ function App() {
           }
         />
         <Route
+          path="/products"
+          element={
+            <Protected>
+              <ProductList />
+            </Protected>
+          }
+        />
+        <Route
           path="/cart"
           element={
             <Protected>
@@ -123,6 +134,23 @@ function App() {
           element={
             <Protected>
               <UserOrdersPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/orders/track/:id"
+          element={
+            <Protected>
+              <TrackOrder />
+            </Protected>
+          }
+        />
+        <Route
+          path="/orders/:id"
+          element={
+            <Protected>
+              <OrderDetails />
             </Protected>
           }
         />

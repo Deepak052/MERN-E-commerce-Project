@@ -12,6 +12,9 @@ export const ProductCard = ({
   price,
   originalPrice,
   discount,
+  stock, // 👈 NEW
+  hasVariants, // 👈 NEW
+  isAdminCard, // 👈 NEW
   isWishlisted,
   handleAddRemoveFromWishlist,
 }) => {
@@ -21,7 +24,11 @@ export const ProductCard = ({
     <motion.div
       whileHover={{ scale: 1.03 }}
       style={{ width: "100%", maxWidth: 280, cursor: "pointer" }}
-      onClick={() => navigate(`/product-details/${id}`)} // 👈 Redirects to details page
+      onClick={() =>
+        navigate(
+          isAdminCard ? `/products/edit/${id}` : `/product-details/${id}`,
+        )
+      }
     >
       <Box
         sx={{
@@ -37,26 +44,28 @@ export const ProductCard = ({
           "&:hover": { boxShadow: "0 10px 25px rgba(0,0,0,0.1)" },
         }}
       >
-        {/* WISHILST BUTTON (Floating) */}
-        <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}>
-          <IconButton
-            size="small"
-            sx={{
-              bgcolor: "rgba(255,255,255,0.8)",
-              "&:hover": { bgcolor: "white" },
-            }}
-            onClick={(e) => {
-              e.stopPropagation(); // 👈 Prevents the card click event from firing
-              handleAddRemoveFromWishlist(e, id);
-            }}
-          >
-            {isWishlisted ? (
-              <FavoriteIcon color="error" fontSize="small" />
-            ) : (
-              <FavoriteBorderIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Box>
+        {/* WISHILST BUTTON (Hidden for Admins) */}
+        {!isAdminCard && handleAddRemoveFromWishlist && (
+          <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}>
+            <IconButton
+              size="small"
+              sx={{
+                bgcolor: "rgba(255,255,255,0.8)",
+                "&:hover": { bgcolor: "white" },
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddRemoveFromWishlist(e, id);
+              }}
+            >
+              {isWishlisted ? (
+                <FavoriteIcon color="error" fontSize="small" />
+              ) : (
+                <FavoriteBorderIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Box>
+        )}
 
         {/* IMAGE */}
         <Box
@@ -83,14 +92,32 @@ export const ProductCard = ({
 
         {/* DETAILS */}
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            fontWeight={600}
-            sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
           >
-            {brand}
-          </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              fontWeight={600}
+              sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
+            >
+              {brand}
+            </Typography>
+
+            {/* Admin Stock Indicator */}
+            {isAdminCard && (
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color={stock < 10 ? "error.main" : "text.secondary"}
+              >
+                Stock: {stock}
+              </Typography>
+            )}
+          </Stack>
+
           <Typography
             fontWeight={600}
             mt={0.5}
@@ -105,10 +132,6 @@ export const ProductCard = ({
             {title}
           </Typography>
 
-          <Typography variant="body2" fontWeight={600} color="success.main">
-            {product.soldCount || 0} Sold
-          </Typography>
-
           {/* PRICE */}
           <Stack
             direction="row"
@@ -119,7 +142,7 @@ export const ProductCard = ({
             gap={0.5}
           >
             <Typography fontWeight={800} fontSize="1.1rem" color="text.primary">
-              ₹{price ? price.toFixed(0) : "0"}
+              {hasVariants ? "From " : ""}₹{price ? price.toFixed(0) : "0"}
             </Typography>
             {discount > 0 && (
               <>

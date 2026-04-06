@@ -1,13 +1,14 @@
 import { axiosi } from "../../../config/axios";
 
-export const addProduct=async(data)=>{
-    try {
-        const res=await axiosi.post('/products',data)
-        return res.data
-    } catch (error) {
-        throw error.response.data
-    }
-}
+export const addProduct = async (productFormData) => {
+  try {
+    // 🚨 FIX: Pass FormData directly
+    const res = await axiosi.post("/products", productFormData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to add product" };
+  }
+};
 export const fetchProducts = async (filters) => {
   let queryParams = new URLSearchParams();
 
@@ -76,14 +77,16 @@ export const fetchProductById=async(id)=>{
         throw error.response.data
     }
 }
-export const updateProductById=async(update)=>{
-    try {
-        const res=await axiosi.patch(`/products/${update._id}`,update)
-        return res.data
-    } catch (error) {
-        throw error.response.data
-    }
-}
+export const updateProductById = async (productFormData) => {
+  try {
+    // 🚨 FIX: Extract ID from the form data
+    const id = productFormData.get("_id");
+    const res = await axiosi.patch(`/products/${id}`, productFormData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: "Failed to update product" };
+  }
+};
 export const undeleteProductById=async(id)=>{
     try {
         const res=await axiosi.patch(`/products/undelete/${id}`)

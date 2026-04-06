@@ -21,7 +21,7 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 
 // 🚨 FIX: Corrected Cross-Feature Imports
-import { resetCurrentOrder, selectCurrentOrder } from "../slice/OrderSlice";
+import { clearCurrentOrder, selectCurrentOrder } from "../slice/OrderSlice";
 import { selectUserInfo } from "../../profile/slice/UserSlice";
 import { orderSuccessAnimation } from "../../../assets";
 
@@ -239,8 +239,8 @@ export const OrderSuccessPage = () => {
             >
               <Button
                 component={Link}
-                to="/user-orders" // 🚨 Updated Link to match the standard route
-                onClick={() => dispatch(resetCurrentOrder())}
+                to={`/orders/track/${currentOrder._id}`} // 🚨 Also updated this to actually link to the track page!
+                onClick={() => dispatch(clearCurrentOrder())} // 🚨 FIX
                 variant="contained"
                 fullWidth
                 size="large"
@@ -255,10 +255,11 @@ export const OrderSuccessPage = () => {
               >
                 Track My Order
               </Button>
+
               <Button
                 component={Link}
                 to="/"
-                onClick={() => dispatch(resetCurrentOrder())}
+                onClick={() => dispatch(clearCurrentOrder())} // 🚨 FIX
                 variant="outlined"
                 fullWidth
                 size="large"
@@ -273,7 +274,7 @@ export const OrderSuccessPage = () => {
                 }}
               >
                 Continue Shopping
-              </Button>
+              </Button>$
             </Stack>
           </Stack>
         </Paper>

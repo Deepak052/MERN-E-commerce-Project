@@ -1,66 +1,272 @@
-import { Button, IconButton, Paper, Stack, Typography, useMediaQuery, useTheme } from '@mui/material'
-import React from 'react'
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import { useDispatch } from 'react-redux';
-import { deleteCartItemByIdAsync, updateCartItemByIdAsync } from '../slice/CartSlice';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
+import {
+  Box,
+  Button,
+  IconButton,
+  Paper,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
+  Chip,
+} from "@mui/material";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import {
+  deleteCartItemByIdAsync,
+  updateCartItemByIdAsync,
+} from "../slice/CartSlice";
 
-export const CartItem = ({id,thumbnail,title,category,brand,price,quantity,stockQuantity,productId}) => {
+export const CartItem = ({
+  id,
+  thumbnail,
+  title,
+  brand,
+  price,
+  quantity,
+  stockQuantity,
+  productId,
+  selectedAttributes, // 🚨 NEW: Receive the selected variant attributes
+}) => {
+  const dispatch = useDispatch();
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.down("sm")); // Mobile screens
 
-
-    const dispatch=useDispatch()
-    const theme=useTheme()
-    const is900=useMediaQuery(theme.breakpoints.down(900))
-    const is480=useMediaQuery(theme.breakpoints.down(480))
-    const is552=useMediaQuery(theme.breakpoints.down(552))
-
-    const handleAddQty=()=>{
-        const update={_id:id,quantity:quantity+1}
-        dispatch(updateCartItemByIdAsync(update))
+  // ─── QTY HANDLERS ───
+  const handleIncreaseQty = () => {
+    // Prevent increasing beyond available stock or a reasonable limit
+    if (quantity < stockQuantity && quantity < 10) {
+      dispatch(updateCartItemByIdAsync({ _id: id, quantity: quantity + 1 }));
     }
-    const handleRemoveQty=()=>{
-        if(quantity===1){
-            dispatch(deleteCartItemByIdAsync(id))
-        }
-        else{
-            const update={_id:id,quantity:quantity-1}
-            dispatch(updateCartItemByIdAsync(update))
-        }
-    }
+  };
 
-    const handleProductRemove=()=>{
-        dispatch(deleteCartItemByIdAsync(id))
+  const handleDecreaseQty = () => {
+    if (quantity > 1) {
+      dispatch(updateCartItemByIdAsync({ _id: id, quantity: quantity - 1 }));
     }
+  };
 
+  const handleRemove = () => {
+    dispatch(deleteCartItemByIdAsync(id));
+  };
 
   return (
-    <Stack bgcolor={'white'} component={is900?'':Paper} p={is900?0:2} elevation={1}  flexDirection={'row'} justifyContent={'space-between'} alignItems={'center'}>
-        
-        {/* image and details */}
-        <Stack flexDirection={'row'} rowGap={'1rem'} alignItems={'center'} columnGap={2} flexWrap={'wrap'}>
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        borderRadius: 3,
+        border: "1px solid #e5e7eb",
+        bgcolor: "#ffffff",
+        transition: "box-shadow 0.2s",
+        "&:hover": {
+          boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
+        },
+      }}
+    >
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={{ xs: 2, sm: 3 }}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+      >
+        {/* ─── 1. IMAGE ─── */}
+        <Box
+          component={Link}
+          to={`/product-details/${productId}`}
+          sx={{
+            width: { xs: 80, sm: 120 },
+            height: { xs: 80, sm: 120 },
+            flexShrink: 0,
+            borderRadius: 2,
+            border: "1px solid #f3f4f6",
+            bgcolor: "#f9fafb",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 1,
+            textDecoration: "none",
+          }}
+        >
+          <img
+            src={thumbnail}
+            alt={title}
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+            }}
+          />
+        </Box>
 
-            <Stack width={is552?"auto":'200px'} height={is552?"auto":'200px'} component={Link} to={`/product-details/${productId}`}>
-                <img style={{width:"100%",height:is552?"auto":"100%",aspectRatio:is552?1/1:'',objectFit:'contain'}} src={thumbnail} alt={`${title} image unavailabe`} />
+        {/* ─── 2. DETAILS (Title, Brand, Attributes) ─── */}
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          {/* Brand */}
+          {brand && (
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              color="text.secondary"
+              sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
+            >
+              {brand}
+            </Typography>
+          )}
+
+          {/* Title */}
+          <Typography
+            component={Link}
+            to={`/product-details/${productId}`}
+            variant="h6"
+            fontWeight={700}
+            color="#111827"
+            sx={{
+              textDecoration: "none",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              lineHeight: 1.3,
+              mt: 0.5,
+              mb: 1,
+              "&:hover": { color: theme.palette.primary.main },
+            }}
+          >
+            {title}
+          </Typography>
+
+          {/* 🚨 NEW: RENDER SELECTED VARIANT ATTRIBUTES */}
+          {selectedAttributes && selectedAttributes.length > 0 && (
+            <Stack direction="row" flexWrap="wrap" gap={1} mb={2}>
+              {selectedAttributes.map((attr, idx) => (
+                <Chip
+                  key={idx}
+                  label={
+                    <span>
+                      <span style={{ color: "#6b7280", fontWeight: 500 }}>
+                        {attr.name}:{" "}
+                      </span>
+                      <span style={{ color: "#111827", fontWeight: 700 }}>
+                        {attr.value}
+                      </span>
+                    </span>
+                  }
+                  size="small"
+                  sx={{
+                    bgcolor: "#f3f4f6",
+                    borderRadius: 1.5,
+                    fontSize: "0.75rem",
+                  }}
+                />
+              ))}
+            </Stack>
+          )}
+
+          {/* Mobile Pricing (Shows under title on small screens) */}
+          {isSm && (
+            <Typography
+              variant="h6"
+              fontWeight={800}
+              color="text.primary"
+              mb={2}
+            >
+              ₹{price?.toFixed(0)}
+            </Typography>
+          )}
+
+          {/* ─── QTY CONTROLS & REMOVE ─── */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={3}
+            mt={!isSm && !selectedAttributes?.length ? 2 : 0}
+          >
+            {/* Qty Box */}
+            <Stack
+              direction="row"
+              alignItems="center"
+              sx={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 2,
+                overflow: "hidden",
+                height: 36,
+              }}
+            >
+              <IconButton
+                onClick={handleDecreaseQty}
+                disabled={quantity <= 1}
+                sx={{
+                  borderRadius: 0,
+                  p: 1,
+                  "&:hover": { bgcolor: "#f3f4f6" },
+                }}
+              >
+                <RemoveRoundedIcon fontSize="small" />
+              </IconButton>
+
+              <Typography
+                fontWeight={700}
+                sx={{
+                  px: 1.5,
+                  minWidth: 32,
+                  textAlign: "center",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {quantity}
+              </Typography>
+
+              <IconButton
+                onClick={handleIncreaseQty}
+                disabled={quantity >= stockQuantity || quantity >= 10}
+                sx={{
+                  borderRadius: 0,
+                  p: 1,
+                  "&:hover": { bgcolor: "#f3f4f6" },
+                }}
+              >
+                <AddRoundedIcon fontSize="small" />
+              </IconButton>
             </Stack>
 
-            <Stack alignSelf={''}>
-                <Typography component={Link} to={`/product-details/${productId}`} sx={{textDecoration:"none",color:theme.palette.primary.main}} variant='h6' fontWeight={500}>{title}</Typography>
-                <Typography variant='body2' color={'text.secondary'}>{brand}</Typography>
-                <Typography mt={1}>Quantity</Typography>
-                <Stack flexDirection={'row'} alignItems={'center'}>
-                    <IconButton onClick={handleRemoveQty}><RemoveIcon fontSize='small'/></IconButton>
-                    <Typography>{quantity}</Typography>
-                    <IconButton onClick={handleAddQty}><AddIcon fontSize='small'/></IconButton>
-                </Stack>
-            </Stack>
-        </Stack>
+            {/* Remove Button */}
+            <Button
+              variant="text"
+              color="error"
+              size="small"
+              onClick={handleRemove}
+              startIcon={<DeleteOutlineRoundedIcon />}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              Remove
+            </Button>
+          </Stack>
+        </Box>
 
-        {/* price and remove button */}
-        <Stack justifyContent={'space-evenly'} alignSelf={is552?'flex-end':''} height={'100%'} rowGap={'1rem'} alignItems={'flex-end'}>
-            <Typography variant='body2'>${price}</Typography>
-            <Button size={is480?"small":""} onClick={handleProductRemove} variant='contained'>Remove</Button>
-        </Stack>
-    </Stack>
-  )
-}
+        {/* ─── 3. DESKTOP PRICING (Right Aligned) ─── */}
+        {!isSm && (
+          <Box sx={{ textAlign: "right", minWidth: 100 }}>
+            <Typography variant="h5" fontWeight={800} color="text.primary">
+              ₹{price?.toFixed(0)}
+            </Typography>
+
+            {/* Optional Subtotal if QTY > 1 */}
+            {quantity > 1 && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+                display="block"
+                mt={0.5}
+              >
+                (₹{(price * quantity).toFixed(0)} total)
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Stack>
+    </Paper>
+  );
+};

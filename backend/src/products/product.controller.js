@@ -1,13 +1,66 @@
 const Product = require("./product.model"); 
 const Order = require("../orders/order.model");
 
+const mongoose = require("mongoose");
+
+// Helper function to auto-sync parent pricing and stock based on variants
+const syncVariantData = (productData) => {
+  if (productData.variants && productData.variants.length > 0) {
+    productData.hasVariants = true;
+    
+    // 1. Set basePrice to the cheapest variant
+    productData.basePrice = Math.min(...productData.variants.map(v => Number(v.price)));
+    
+    // 2. Sum up total stock quantity across all variants
+    productData.stockQuantity = productData.variants.reduce((total, v) => total + Number(v.stockQuantity), 0);
+  } else {
+    productData.hasVariants = false;
+  }
+  return productData;
+};
+
+const parseJSONSafely = (data) => {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return data;
+    }
+  }
+  return data;
+};
+
 // ==========================================
 // 🔴 ADMIN CONTROLLERS
 // ==========================================
 
 exports.create = async (req, res) => {
   try {
-    const product = new Product(req.body);
+    // 1. Parse stringified FormData arrays back into objects
+    req.body.seo = parseJSONSafely(req.body.seo);
+    req.body.attributes = parseJSONSafely(req.body.attributes);
+    req.body.variants = parseJSONSafely(req.body.variants);
+    req.body.bundleItems = parseJSONSafely(req.body.bundleItems);
+
+    // 2. Map Cloudinary URLs from Multer
+    if (req.files) {
+      if (req.files.thumbnail) {
+        req.body.thumbnail = req.files.thumbnail[0].path;
+      }
+
+      const galleryImages = [];
+      for (let i = 0; i < 4; i++) {
+        if (req.files[`image${i}`]) {
+          galleryImages.push(req.files[`image${i}`][0].path);
+        }
+      }
+      if (galleryImages.length > 0) req.body.images = galleryImages;
+    }
+
+    // 3. Auto-calculate totals before saving
+    const processedData = syncVariantData(req.body);
+
+    const product = new Product(processedData);
     await product.save();
     res.status(201).json(product);
   } catch (error) {
@@ -29,7 +82,14 @@ exports.getAllAdmin = async (req, res) => {
     let skip = 0;
     let limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
-    if (req.query.search) filter.$text = { $search: req.query.search };
+    // 🚨 FIX: Replaced $text with $regex for partial and case-insensitive searching
+    if (req.query.search) {
+      filter.$or = [
+        { title: { $regex: req.query.search, $options: "i" } },
+        { description: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+
     if (req.query.brand) filter.brand = { $in: req.query.brand.split(",") };
     if (req.query.category)
       filter.category = { $in: req.query.category.split(",") };
@@ -64,15 +124,55 @@ exports.getAllAdmin = async (req, res) => {
 
 exports.updateById = async (req, res) => {
   try {
-    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    })
+    // 1. Parse stringified FormData back into actual JSON objects/arrays
+    if (req.body.seo) req.body.seo = parseJSONSafely(req.body.seo);
+    if (req.body.attributes)
+      req.body.attributes = parseJSONSafely(req.body.attributes);
+    if (req.body.variants)
+      req.body.variants = parseJSONSafely(req.body.variants);
+    if (req.body.bundleItems)
+      req.body.bundleItems = parseJSONSafely(req.body.bundleItems);
+
+    // 2. Fetch the existing product to safely merge images
+    const existingProduct = await Product.findById(req.params.id);
+    if (!existingProduct)
+      return res.status(404).json({ message: "Product not found" });
+
+    // 3. Handle Cloudinary URLs from Multer
+    if (req.files) {
+      // If a new thumbnail was uploaded, overwrite the old one
+      if (req.files.thumbnail) {
+        req.body.thumbnail = req.files.thumbnail[0].path;
+      }
+
+      // Carefully merge new gallery images into the existing array
+      let updatedImages = [...existingProduct.images];
+      for (let i = 0; i < 4; i++) {
+        if (req.files[`image${i}`]) {
+          updatedImages[i] = req.files[`image${i}`][0].path;
+        }
+      }
+      // Filter out any empty slots and attach to the update payload
+      req.body.images = updatedImages.filter(Boolean);
+    }
+
+    // 4. Auto-calculate totals before updating (now safe because variants is an array again)
+    const processedData = syncVariantData(req.body);
+
+    // 5. Update the database
+    const updated = await Product.findByIdAndUpdate(
+      req.params.id,
+      processedData,
+      {
+        new: true,
+      },
+    )
       .populate("brand", "name slug")
       .populate("category", "name slug");
 
-    if (!updated) return res.status(404).json({ message: "Product not found" });
     res.status(200).json(updated);
   } catch (error) {
+    console.error("Update Product Error:", error);
     if (error.code === 11000) {
       return res
         .status(400)
@@ -123,13 +223,19 @@ exports.deleteById = async (req, res) => {
 
 exports.getAllPublic = async (req, res) => {
   try {
-    // SECURITY FIX: Forcing isActive to true for the public storefront
     const filter = { isDeleted: false, isActive: true };
     const sort = {};
     let skip = 0;
     let limit = req.query.limit ? parseInt(req.query.limit) : 10;
 
-    if (req.query.search) filter.$text = { $search: req.query.search };
+    // 🚨 FIX: Replaced $text with $regex for partial and case-insensitive searching
+    if (req.query.search) {
+      filter.$or = [
+        { title: { $regex: req.query.search, $options: "i" } },
+        { description: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+
     if (req.query.brand) filter.brand = { $in: req.query.brand.split(",") };
     if (req.query.category)
       filter.category = { $in: req.query.category.split(",") };
@@ -167,22 +273,6 @@ exports.getAllPublic = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error fetching products", error: error.message });
-  }
-};
-
-exports.getNewArrivals = async (req, res) => {
-  try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
-    const newArrivals = await Product.find({ isDeleted: false, isActive: true })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .populate("brand", "name slug logo")
-      .populate("category", "name slug");
-    res.status(200).json(newArrivals);
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching new arrivals", error: error.message });
   }
 };
 
@@ -233,19 +323,17 @@ exports.getByIdOrSlug = async (req, res) => {
 
 exports.getNewArrivals = async (req, res) => {
   try {
-    // Optional: Allow the frontend to request a specific number of items (default 10)
-    const limit = parseInt(req.query.limit) || 10;
-
-    // Fetch products sorted by creation date (newest first)
-    // Note: Add { deleted: false } to the find() query if you use soft deletes
-    const newArrivals = await Product.find()
+    const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+    const newArrivals = await Product.find({ isDeleted: false, isActive: true })
       .sort({ createdAt: -1 })
-      .limit(limit);
-
+      .limit(limit)
+      .populate("brand", "name slug logo")
+      .populate("category", "name slug");
     res.status(200).json(newArrivals);
   } catch (error) {
-    console.error("Fetch New Arrivals Error:", error);
-    res.status(500).json({ message: "Failed to fetch new arrivals" });
+    res
+      .status(500)
+      .json({ message: "Error fetching new arrivals", error: error.message });
   }
 };
 
@@ -336,49 +424,112 @@ exports.getFlashSale = async (req, res) => {
 // A lightweight recommendation engine based on the user's past order categories
 exports.getRecommendations = async (req, res) => {
   try {
-    const userId = req.user._id; 
+    const userId = req.user._id;
     const limit = parseInt(req.query.limit) || 10;
 
-    // Step A: Find the user's most recent orders to see what they like
+    console.log("🔹 [START] getRecommendations API");
+    console.log("👉 User ID:", userId);
+    console.log("👉 Limit:", limit);
+
+    // 🚨 FIX 1: Removed .populate() because 'item' is a Mixed type
+    // and the product data is already embedded directly in the order document.
     const recentOrders = await Order.find({ user: userId })
       .sort({ createdAt: -1 })
-      .limit(3)
-      .populate("items.product");
+      .limit(3);
+
+    console.log("📦 Recent Orders Count:", recentOrders.length);
 
     let preferredCategories = [];
 
     if (recentOrders.length > 0) {
-      // Extract unique category IDs from their recent purchases
-      recentOrders.forEach(order => {
-        order.items.forEach(item => {
-          if (item.product && item.product.category) {
-            preferredCategories.push(item.product.category.toString());
-          }
-        });
+      console.log("🔍 Extracting categories from recent orders...");
+
+      recentOrders.forEach((order, orderIndex) => {
+        console.log(`➡️ Order ${orderIndex + 1} ID:`, order._id);
+
+        // 🚨 FIX 2: Changed from order.items to order.item (matching your schema)
+        if (order.item && Array.isArray(order.item)) {
+          order.item.forEach((cartItem, itemIndex) => {
+            if (cartItem.product && cartItem.product.category) {
+              console.log(
+                `   🛒 Item ${itemIndex + 1} Product ID:`,
+                cartItem.product._id,
+              );
+
+              // 🚨 FIX 3: Safely extract the category ID whether it is an object or a string
+              const categoryId =
+                cartItem.product.category._id || cartItem.product.category;
+              console.log(`   📂 Category:`, categoryId.toString());
+
+              preferredCategories.push(categoryId.toString());
+            } else {
+              console.log(
+                `   ⚠️ Item ${itemIndex + 1} has no product/category`,
+              );
+            }
+          });
+        }
       });
-      preferredCategories = [...new Set(preferredCategories)]; 
+
+      // Remove duplicates
+      preferredCategories = [...new Set(preferredCategories)];
+
+      console.log("✅ Preferred Categories:", preferredCategories);
+    } else {
+      console.log("⚠️ No recent orders found for user");
     }
 
     let recommendations;
 
     if (preferredCategories.length > 0) {
-      // Step B: Find random products from their preferred categories
+      console.log(
+        "🎯 Fetching recommendations based on preferred categories...",
+      );
+
       recommendations = await Product.aggregate([
-        { $match: { isActive: true, category: { $in: preferredCategories } } },
-        { $sample: { size: limit } }
+        {
+          $match: {
+            isActive: true,
+            // Match products where the category ID string matches
+            category: {
+              $in: preferredCategories.map(
+                (id) => new mongoose.Types.ObjectId(id),
+              ),
+            },
+          },
+        },
+        { $sample: { size: limit } },
       ]);
+
+      console.log(
+        "📊 Recommendations fetched (category-based):",
+        recommendations.length,
+      );
     } else {
-      // Step C: Fallback - if they have no order history, just show popular random items
+      console.log("🎲 Fallback: Fetching random products...");
+
       recommendations = await Product.aggregate([
         { $match: { isActive: true } },
-        { $sample: { size: limit } }
+        { $sample: { size: limit } },
       ]);
+
+      console.log(
+        "📊 Recommendations fetched (random):",
+        recommendations.length,
+      );
     }
+
+    console.log("🔹 [END] getRecommendations API\n");
 
     res.status(200).json(recommendations);
   } catch (error) {
-    console.error("Recommendations Error:", error);
-    res.status(500).json({ message: "Failed to fetch recommendations" });
+    console.error("❌ Recommendations Error:", error.message);
+    console.error("📌 Stack Trace:", error.stack);
+
+    res.status(500).json({
+      message: "Failed to fetch recommendations",
+      error: error.message,
+    });
   }
 };
 

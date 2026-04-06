@@ -1,44 +1,42 @@
-require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
-exports.verifyToken = async (req, res, next) => {
+exports.verifyToken = (req, res, next) => {
   try {
-    // extract the token from request cookies
-    const { token } = req.cookies;
+    console.log("\n=== 🛡️ VERIFY TOKEN MIDDLEWARE ===");
+    console.log("👉 Request URL:", req.originalUrl);
+    console.log("👉 All Cookies Received:", req.cookies);
 
-    // if token is not there, return 401 response
+    const isAdminRoute = req.originalUrl.includes("/admin");
+    console.log("👉 Is Admin Route?", isAdminRoute);
+
+    // We only want strict, exact cookie matches now.
+    const token = isAdminRoute ? req.cookies.adminToken : req.cookies.userToken;
+    console.log(
+      "👉 Selected Token:",
+      token ? "Token is present" : "Token is MISSING",
+    );
+
     if (!token) {
+      console.log("❌ FAILED: No Cookie Found for this route.");
       return res
         .status(401)
-        .json({ message: "Token missing, please login again" });
+        .json({ message: "Unauthorized Access - No Cookie Found" });
     }
 
-    // verifies the token
-    const decodedInfo = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("✅ SUCCESS: Token Decoded. User Role:", decoded.role);
 
-    // checks if decoded info contains legit details, then set that info in req.user and calls next
-    if (decodedInfo && decodedInfo._id && decodedInfo.email) {
-      req.user = decodedInfo;
-      next();
-    } else {
-      // if token is invalid then sends the response accordingly
-      return res
-        .status(401)
-        .json({ message: "Invalid Token, please login again" });
-    }
+    req.user = decoded;
+    next();
   } catch (error) {
-    console.error("JWT Verification Error:", error.message);
-
-    if (error instanceof jwt.TokenExpiredError) {
-      return res
-        .status(401)
-        .json({ message: "Token expired, please login again" });
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      return res
-        .status(401)
-        .json({ message: "Invalid Token, please login again" });
-    } else {
-      return res.status(500).json({ message: "Internal Server Error" });
-    }
+    // 🚨 THIS WILL TELL YOU EXACTLY WHY IT FAILED
+    // (e.g., "jwt expired", "invalid signature", "jwt malformed")
+    console.error(
+      "❌ FAILED: Token Verification Error Details =>",
+      error.message,
+    );
+    return res
+      .status(401)
+      .json({ message: "Invalid or Expired Token", error: error.message });
   }
 };

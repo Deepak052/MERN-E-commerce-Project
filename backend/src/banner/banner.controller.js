@@ -25,6 +25,13 @@ exports.getAllPublic = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
+    // 🚨 NEW: Grab the URL from Multer
+    if (req.file) {
+      req.body.image = req.file.path;
+    } else {
+      return res.status(400).json({ message: "Banner image is required." });
+    }
+
     const banner = new Banner(req.body);
     await banner.save();
     res.status(201).json(banner);
@@ -65,9 +72,15 @@ exports.getById = async (req, res) => {
 
 exports.updateById = async (req, res) => {
   try {
+    // 🚨 NEW: Only update the image if the admin uploaded a new one
+    if (req.file) {
+      req.body.image = req.file.path;
+    }
+
     const updated = await Banner.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
+
     if (!updated) return res.status(404).json({ message: "Banner not found" });
 
     res.status(200).json(updated);

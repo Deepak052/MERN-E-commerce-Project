@@ -31,6 +31,7 @@ import { AddEditCategoryView } from "./features/categories/pages/AddEditCategory
 import CategoryManagerView from "./features/categories/pages/CategoryManagerView";
 import AdminManagerView from "./features/customers/pages/AdminManagerView"
 import { AddEditBrandView } from "./features/brands/pages/AddEditBrandView";
+import { ProductDetailsView } from "./features/products/pages/ProductDetailsView";
 function App() {
   const isAuthChecked = useSelector(selectIsAuthChecked);
   useAuthCheck();
@@ -86,6 +87,17 @@ function App() {
             <Protected>
               <AdminLayout activeTab="Products">
                 <ProductUpdate />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/products/view/:id"
+          element={
+            <Protected>
+              <AdminLayout activeTab="Products">
+                <ProductDetailsView />
               </AdminLayout>
             </Protected>
           }

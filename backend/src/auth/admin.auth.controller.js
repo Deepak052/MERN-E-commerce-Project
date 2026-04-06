@@ -13,7 +13,7 @@ exports.adminLogin = async (req, res) => {
     const existingAdmin = await Admin.findOne({ email: req.body.email });
 
     if (!existingAdmin || existingAdmin.isBlocked) {
-      res.clearCookie("token");
+      res.clearCookie("adminToken"); // 🚨 Changed
       return res
         .status(404)
         .json({ message: "Invalid Admin Credentials or Blocked" });
@@ -24,21 +24,21 @@ exports.adminLogin = async (req, res) => {
       existingAdmin.password,
     );
     if (!isPasswordValid) {
-      res.clearCookie("token");
+      res.clearCookie("adminToken"); // 🚨 Changed
       return res.status(404).json({ message: "Invalid Admin Credentials" });
     }
 
     const secureInfo = sanitizeUser(existingAdmin);
-    const token = generateToken({ ...secureInfo, role: existingAdmin.role }); // 🚨 Assign Admin Role
+    const token = generateToken({ ...secureInfo, role: existingAdmin.role });
 
-    res.cookie("token", token, {
+    res.cookie("adminToken", token, {
+      // 🚨 Changed
       sameSite: process.env.PRODUCTION === "true" ? "None" : "Lax",
       maxAge:
-        parseInt(process.env.COOKIE_EXPIRATION_DAYS) * 24 * 60 * 60 * 1000,
+        parseInt(process.env.COOKIE_EXPIRATION_DAYS || 7) * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: process.env.PRODUCTION === "true",
     });
-
     return res.status(200).json({ ...secureInfo, role: existingAdmin.role });
   } catch (error) {
     res.status(500).json({ message: "Admin Login Error" });
@@ -180,7 +180,7 @@ exports.adminResetPassword = async (req, res) => {
 
 exports.adminLogout = async (req, res) => {
   try {
-    res.cookie("token", "", {
+    res.cookie("adminToken", "", { // 🚨 Changed
       maxAge: 0,
       sameSite: process.env.PRODUCTION === "true" ? "None" : "Lax",
       httpOnly: true,

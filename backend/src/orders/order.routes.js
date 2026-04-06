@@ -33,5 +33,6 @@ router.post(
 
 // Customer gets their own order history
 router.get("/", verifyToken, orderController.getUserOrders);
+router.get("/:id", verifyToken, orderController.getOrderById);
 
 module.exports = router;

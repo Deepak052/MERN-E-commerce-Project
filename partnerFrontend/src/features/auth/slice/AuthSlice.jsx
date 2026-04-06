@@ -32,24 +32,23 @@ const initialState = {
 };
 
 // ==========================================
-// 🚨 THUNKS (FIXED WITH rejectWithValue)
+// 🚨 THUNKS
 // ==========================================
 
 export const loginAdminAsync = createAsyncThunk(
-  "auth/loginAdminAsync",
+  "adminAuth/loginAdminAsync",
   async (cred, { rejectWithValue }) => {
     try {
       const res = await login(cred);
       return res;
     } catch (error) {
-      // Passes the exact backend error {"message": "Invalid Credentials"} to the payload
       return rejectWithValue(error);
     }
   },
 );
 
 export const forgotPasswordAsync = createAsyncThunk(
-  "auth/forgotPasswordAsync",
+  "adminAuth/forgotPasswordAsync",
   async (cred, { rejectWithValue }) => {
     try {
       const res = await forgotPassword(cred);
@@ -61,7 +60,7 @@ export const forgotPasswordAsync = createAsyncThunk(
 );
 
 export const resetPasswordAsync = createAsyncThunk(
-  "auth/resetPasswordAsync",
+  "adminAuth/resetPasswordAsync",
   async (cred, { rejectWithValue }) => {
     try {
       const res = await resetPassword(cred);
@@ -73,7 +72,7 @@ export const resetPasswordAsync = createAsyncThunk(
 );
 
 export const checkAuthAsync = createAsyncThunk(
-  "auth/checkAuthAsync",
+  "adminAuth/checkAuthAsync",
   async (_, { rejectWithValue }) => {
     try {
       const res = await checkAuth();
@@ -85,7 +84,7 @@ export const checkAuthAsync = createAsyncThunk(
 );
 
 export const logoutAsync = createAsyncThunk(
-  "auth/logoutAsync",
+  "adminAuth/logoutAsync",
   async (_, { rejectWithValue }) => {
     try {
       const res = await logout();
@@ -97,11 +96,11 @@ export const logoutAsync = createAsyncThunk(
 );
 
 // ==========================================
-// SLICE (Reducers & ExtraReducers)
+// SLICE
 // ==========================================
 
-const authSlice = createSlice({
-  name: "authSlice",
+const adminAuthSlice = createSlice({
+  name: "adminAuthSlice", // 🚨 renamed
   initialState: initialState,
   reducers: {
     clearAuthSuccessMessage: (state) => {
@@ -148,12 +147,11 @@ const authSlice = createSlice({
         state.loginStatus = "pending";
       })
       .addCase(loginAdminAsync.fulfilled, (state, action) => {
-        state.loginStatus = "fullfilled";
+        state.loginStatus = "fulfilled";
         state.loggedInUser = action.payload;
       })
       .addCase(loginAdminAsync.rejected, (state, action) => {
         state.loginStatus = "rejected";
-        // 🚨 FIX: Extract error from action.payload instead of action.error
         state.loginError = action.payload || action.error;
       })
 
@@ -162,7 +160,7 @@ const authSlice = createSlice({
         state.forgotPasswordStatus = "pending";
       })
       .addCase(forgotPasswordAsync.fulfilled, (state, action) => {
-        state.forgotPasswordStatus = "fullfilled";
+        state.forgotPasswordStatus = "fulfilled";
         state.forgotPasswordSuccessMessage = action.payload;
       })
       .addCase(forgotPasswordAsync.rejected, (state, action) => {
@@ -175,7 +173,7 @@ const authSlice = createSlice({
         state.resetPasswordStatus = "pending";
       })
       .addCase(resetPasswordAsync.fulfilled, (state, action) => {
-        state.resetPasswordStatus = "fullfilled";
+        state.resetPasswordStatus = "fulfilled";
         state.resetPasswordSuccessMessage = action.payload;
       })
       .addCase(resetPasswordAsync.rejected, (state, action) => {
@@ -188,7 +186,7 @@ const authSlice = createSlice({
         state.status = "pending";
       })
       .addCase(logoutAsync.fulfilled, (state) => {
-        state.status = "fullfilled";
+        state.status = "fulfilled";
         state.loggedInUser = null;
       })
       .addCase(logoutAsync.rejected, (state, action) => {
@@ -201,7 +199,7 @@ const authSlice = createSlice({
         state.status = "pending";
       })
       .addCase(checkAuthAsync.fulfilled, (state, action) => {
-        state.status = "fullfilled";
+        state.status = "fulfilled";
         state.loggedInUser = action.payload;
         state.isAuthChecked = true;
       })
@@ -214,9 +212,8 @@ const authSlice = createSlice({
 });
 
 // ==========================================
-// EXPORTS (Selectors & Actions)
+// SELECTORS
 // ==========================================
-
 export const selectAuthStatus = (state) => state.AuthSlice.status;
 export const selectAuthErrors = (state) => state.AuthSlice.errors;
 export const selectLoggedInAdmin = (state) => state.AuthSlice.loggedInUser;
@@ -241,6 +238,9 @@ export const selectResetPasswordSuccessMessage = (state) =>
 export const selectResetPasswordError = (state) =>
   state.AuthSlice.resetPasswordError;
 
+// ==========================================
+// ACTIONS & EXPORTS
+// ==========================================
 export const {
   clearAuthSuccessMessage,
   clearAuthErrors,
@@ -253,6 +253,6 @@ export const {
   clearResetPasswordError,
   clearResetPasswordSuccessMessage,
   resetResetPasswordStatus,
-} = authSlice.actions;
+} = adminAuthSlice.actions; // 🚨 FIX: Extracting from adminAuthSlice.actions
 
-export default authSlice.reducer;
+export default adminAuthSlice.reducer; // 🚨 FIX: Exporting adminAuthSlice.reducer

@@ -21,6 +21,7 @@ export const getBannerById = async (id) => {
 
 export const addBanner = async (data) => {
   try {
+    // data is now FormData
     const res = await axiosi.post("/banners", data);
     return res.data;
   } catch (error) {
@@ -28,10 +29,11 @@ export const addBanner = async (data) => {
   }
 };
 
-export const updateBannerById = async (update) => {
+export const updateBannerById = async (data) => {
   try {
-    const { _id, ...rest } = update;
-    const res = await axiosi.patch(`/banners/${_id}`, rest);
+    // data is now FormData. We extract the ID directly from it.
+    const id = data.get("_id");
+    const res = await axiosi.patch(`/banners/${id}`, data);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to update banner" };

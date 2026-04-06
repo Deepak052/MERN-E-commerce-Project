@@ -1,10 +1,45 @@
 const Order = require("./order.model");
+const Product = require("../products/product.model"); // 🚨 NEW: Needed for Stock tracking
+const Razorpay = require("razorpay"); // 🚨 FIX: Missing Import
+const crypto = require("crypto"); // 🚨 FIX: Missing Import
+
+// ==========================================
+// 🛠️ HELPER: REDUCE INVENTORY STOCK
+// ==========================================
+const reduceStock = async (orderItems) => {
+  for (const cartItem of orderItems) {
+    // Safely get the product ID whether it's populated or just a string
+    const productId = cartItem.product._id || cartItem.product;
+    const product = await Product.findById(productId);
+
+    if (product) {
+      // 1. If it has variants, reduce the specific variant's stock
+      if (product.hasVariants && cartItem.variantId) {
+        const variant = product.variants.id(cartItem.variantId);
+        if (variant) {
+          variant.stockQuantity = Math.max(
+            0,
+            variant.stockQuantity - cartItem.quantity,
+          );
+        }
+      }
+
+      // 2. Always reduce the parent product's total stock
+      product.stockQuantity = Math.max(
+        0,
+        product.stockQuantity - cartItem.quantity,
+      );
+
+      await product.save();
+    }
+  }
+};
+
+// ==========================================
+// 🟢 CREATE STANDARD ORDER (COD)
+// ==========================================
 exports.create = async (req, res) => {
   try {
-    console.log("🟢 [CREATE ORDER] API HIT");
-    console.log("👤 User:", req.user?._id);
-    console.log("📦 Order Payload:", req.body);
-
     const created = new Order({
       ...req.body,
       user: req.user._id,
@@ -12,11 +47,12 @@ exports.create = async (req, res) => {
 
     await created.save();
 
-    console.log("✅ Order created successfully:", created._id);
+    // 🚨 NEW: Reduce stock in the database!
+    await reduceStock(req.body.item);
 
     res.status(201).json(created);
   } catch (error) {
-    console.error("🔥 [CREATE ORDER ERROR]:", error);
+    console.error("Create Order Error:", error);
     return res.status(500).json({
       message: "Error creating an order, please try again later",
     });
@@ -24,34 +60,32 @@ exports.create = async (req, res) => {
 };
 
 // ==========================================
-
+// 💳 RAZORPAY INIT
+// ==========================================
 exports.createRazorpayOrder = async (req, res) => {
   try {
-    console.log("💳 [RAZORPAY INIT] API HIT");
-    console.log("📩 Request Body:", req.body);
-
     const { totalAmount } = req.body;
 
     if (!totalAmount) {
-      console.warn("⚠️ Total amount missing");
       return res.status(400).json({ message: "Total amount is required" });
     }
 
+    // 🚨 FIX: Initialize Razorpay instance
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
     const options = {
-      amount: Math.round(totalAmount * 100),
+      amount: Math.round(totalAmount * 100), // Razorpay expects amount in paise (cents)
       currency: "INR",
       receipt: `rcpt_${Date.now()}`,
     };
 
-    console.log("📦 Razorpay Options:", options);
-
     const order = await razorpay.orders.create(options);
-
-    console.log("✅ Razorpay Order Created:", order.id);
-
     res.status(200).json(order);
   } catch (error) {
-    console.error("🔥 [RAZORPAY CREATE ERROR]:", error);
+    console.error("Razorpay Create Error:", error);
     res.status(500).json({
       message: "Error creating Razorpay order",
       error: error.description || error.message || "Unknown Razorpay Error",
@@ -60,11 +94,10 @@ exports.createRazorpayOrder = async (req, res) => {
 };
 
 // ==========================================
-
+// 🔐 VERIFY ONLINE PAYMENT
+// ==========================================
 exports.verifyRazorpayPayment = async (req, res) => {
   try {
-    console.log("🔐 [VERIFY PAYMENT] API HIT");
-
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -72,45 +105,37 @@ exports.verifyRazorpayPayment = async (req, res) => {
       orderData,
     } = req.body;
 
-    console.log("📩 Payment Data:", {
-      razorpay_order_id,
-      razorpay_payment_id,
-      hasSignature: !!razorpay_signature,
-    });
-
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
 
+    // 🚨 FIX: Crypto was not imported
     const expectedSign = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign.toString())
       .digest("hex");
 
-    console.log("🔑 Signature Match:", razorpay_signature === expectedSign);
-
     if (razorpay_signature === expectedSign) {
-      console.log("✅ Payment verified");
-
       const finalOrder = new Order({
         ...orderData,
         user: req.user._id,
         paymentStatus: "Received",
+        paymentMode: "ONLINE",
         razorpayOrderId: razorpay_order_id,
         razorpayPaymentId: razorpay_payment_id,
       });
 
       await finalOrder.save();
 
-      console.log("📦 Final Order Saved:", finalOrder._id);
+      // 🚨 NEW: Reduce stock after successful payment!
+      await reduceStock(orderData.item);
 
       return res.status(201).json(finalOrder);
     } else {
-      console.warn("❌ Invalid Razorpay signature");
       return res.status(400).json({
         message: "Invalid payment signature!",
       });
     }
   } catch (error) {
-    console.error("🔥 [VERIFY PAYMENT ERROR]:", error);
+    console.error("Verify Payment Error:", error);
     res.status(500).json({
       message: "Error verifying payment",
       error: error.message,
@@ -119,21 +144,16 @@ exports.verifyRazorpayPayment = async (req, res) => {
 };
 
 // ==========================================
-
+// 📜 GET USER ORDERS
+// ==========================================
 exports.getUserOrders = async (req, res) => {
   try {
-    console.log("📜 [GET USER ORDERS] API HIT");
-    console.log("👤 User:", req.user?._id);
-
     const results = await Order.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
-
-    console.log("✅ Orders fetched:", results.length);
-
     res.status(200).json(results);
   } catch (error) {
-    console.error("🔥 [GET USER ORDERS ERROR]:", error);
+    console.error("Get User Orders Error:", error);
     return res.status(500).json({
       message: "Error fetching orders, please try again later",
     });
@@ -141,12 +161,10 @@ exports.getUserOrders = async (req, res) => {
 };
 
 // ==========================================
-
+// 🛠️ ADMIN GET ALL ORDERS
+// ==========================================
 exports.getAllAdmin = async (req, res) => {
   try {
-    console.log("🛠️ [ADMIN GET ALL ORDERS] API HIT");
-    console.log("📩 Query Params:", req.query);
-
     let skip = 0;
     let limit = 0;
 
@@ -157,23 +175,18 @@ exports.getAllAdmin = async (req, res) => {
       limit = pageSize;
     }
 
-    console.log("📊 Pagination:", { skip, limit });
-
     const totalDocs = await Order.countDocuments().exec();
-
     const results = await Order.find({})
+      .populate("user", "name email") // Helpful for the Admin UI to see who ordered
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .exec();
 
-    console.log("✅ Total Orders:", totalDocs);
-    console.log("📦 Returned Orders:", results.length);
-
     res.header("X-Total-Count", totalDocs);
     res.status(200).json(results);
   } catch (error) {
-    console.error("🔥 [ADMIN GET ORDERS ERROR]:", error);
+    console.error("Admin Get Orders Error:", error);
     res.status(500).json({
       message: "Error fetching orders, please try again later",
     });
@@ -181,13 +194,10 @@ exports.getAllAdmin = async (req, res) => {
 };
 
 // ==========================================
-
+// ✏️ ADMIN UPDATE ORDER STATUS
+// ==========================================
 exports.updateById = async (req, res) => {
   try {
-    console.log("✏️ [UPDATE ORDER] API HIT");
-    console.log("🆔 Order ID:", req.params.id);
-    console.log("📩 Update Payload:", req.body);
-
     const { id } = req.params;
 
     const updated = await Order.findByIdAndUpdate(id, req.body, {
@@ -195,17 +205,33 @@ exports.updateById = async (req, res) => {
     });
 
     if (!updated) {
-      console.warn("❌ Order not found:", id);
       return res.status(404).json({ message: "Order not found" });
     }
 
-    console.log("✅ Order updated:", updated._id);
-
     res.status(200).json(updated);
   } catch (error) {
-    console.error("🔥 [UPDATE ORDER ERROR]:", error);
+    console.error("Update Order Error:", error);
     res.status(500).json({
       message: "Error updating order, please try again later",
     });
+  }
+};
+
+// 🚨 NEW: Fetch specific order by ID (Secured to ensure user owns it)
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findOne({ 
+      _id: req.params.id, 
+      user: req.user._id // Security: ensures users can only see their own orders
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found or unauthorized" });
+    }
+
+    res.status(200).json(order);
+  } catch (error) {
+    console.error("Get Order By ID Error:", error);
+    return res.status(500).json({ message: "Error fetching order details" });
   }
 };

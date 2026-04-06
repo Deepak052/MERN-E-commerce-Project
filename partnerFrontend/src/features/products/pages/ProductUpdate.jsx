@@ -1,39 +1,227 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import {
-  clearSelectedProduct,
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Stack,
+  Switch,
+  FormControlLabel,
+  Grid,
+  Breadcrumbs,
+  Divider,
+  InputAdornment,
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+  FormHelperText,
+  Tooltip,
+  Collapse,
+} from "@mui/material";
+import { toast } from "react-toastify";
+
+// Icons
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+
+// Redux
+import {
+  updateProductByIdAsync,
   fetchProductByIdAsync,
+  clearSelectedProduct,
   resetProductUpdateStatus,
   selectProductUpdateStatus,
   selectSelectedProduct,
-  updateProductByIdAsync,
+  selectProducts,
+  fetchProductsAsync,
 } from "../slice/ProductSlice";
-
-import {
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
-  Box,
-  CircularProgress,
-  Grid,
-  FormHelperText,
-} from "@mui/material";
-import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
-
-import { useForm } from "react-hook-form";
 import { selectBrands } from "../../brands/slice/BrandSlice";
 import { selectCategories } from "../../categories/slice/CategoriesSlice";
-import { toast } from "react-toastify";
-import { uploadImageToCloudinary } from "../../../config/axios"; 
 
+const UI = {
+  bg: "#f8f9fc",
+  cardBg: "#ffffff",
+  primary: "#4f46e5",
+  textMain: "#111827",
+  textSecondary: "#374151",
+  textMuted: "#9ca3af",
+  border: "1px solid #e5e7eb",
+  radius: 3,
+  shadow: "0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)",
+};
+
+const rules = {
+  requiredStr: { required: "Required" },
+  slug: {
+    required: "Required",
+    pattern: { value: /^[a-z0-9-]+$/, message: "Lowercase and hyphens only" },
+  },
+  sku: {
+    required: "Required",
+    pattern: { value: /^[A-Z0-9-]+$/, message: "Uppercase, numbers, hyphens" },
+  },
+  price: {
+    required: "Required",
+    min: { value: 0, message: "Cannot be negative" },
+  },
+  stock: {
+    required: "Required",
+    min: { value: 0, message: "Cannot be negative" },
+  },
+};
+
+// ======================================================================
+// NESTED VARIANT COMPONENT (Handles Attributes per Variant)
+// ======================================================================
+const VariantRow = ({ control, register, index, removeVariant, errors }) => {
+  const {
+    fields: attributes,
+    append: addAttribute,
+    remove: removeAttribute,
+  } = useFieldArray({
+    control,
+    name: `variants.${index}.attributes`,
+  });
+
+  return (
+    <Box
+      sx={{
+        p: 3,
+        bgcolor: "#ffffff",
+        borderRadius: 2,
+        border: "1px solid #e5e7eb",
+        position: "relative",
+        mb: 2,
+      }}
+    >
+      <IconButton
+        size="small"
+        color="error"
+        onClick={() => removeVariant(index)}
+        sx={{ position: "absolute", top: 8, right: 8 }}
+      >
+        <DeleteOutlineRoundedIcon />
+      </IconButton>
+
+      <Typography variant="subtitle2" fontWeight={700} mb={2}>
+        Variant {index + 1}
+      </Typography>
+
+      {/* Variant Base Details */}
+      <Grid container spacing={2} pr={4} mb={2}>
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Variant SKU *"
+            {...register(`variants.${index}.sku`, rules.sku)}
+            error={!!errors?.variants?.[index]?.sku}
+            sx={{ input: { textTransform: "uppercase" } }}
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4}>
+          <TextField
+            fullWidth
+            size="small"
+            type="number"
+            label="Price ($) *"
+            {...register(`variants.${index}.price`, rules.price)}
+            error={!!errors?.variants?.[index]?.price}
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+        <Grid item xs={6} sm={4}>
+          <TextField
+            fullWidth
+            size="small"
+            type="number"
+            label="Stock *"
+            {...register(`variants.${index}.stockQuantity`, rules.stock)}
+            error={!!errors?.variants?.[index]?.stockQuantity}
+            InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* Nested Attributes Array */}
+      <Typography
+        variant="body2"
+        fontWeight={600}
+        mb={1}
+        color={UI.textSecondary}
+      >
+        Variant Attributes (e.g., Color: Black, Screen: 4 inch)
+      </Typography>
+      <Stack spacing={1.5} mb={2}>
+        {attributes.map((attr, attrIndex) => (
+          <Stack key={attr.id} direction="row" spacing={2} alignItems="center">
+            <TextField
+              fullWidth
+              size="small"
+              label="Attribute Name"
+              placeholder="e.g. Color"
+              {...register(
+                `variants.${index}.attributes.${attrIndex}.name`,
+                rules.requiredStr,
+              )}
+              error={!!errors?.variants?.[index]?.attributes?.[attrIndex]?.name}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label="Attribute Value"
+              placeholder="e.g. Black"
+              {...register(
+                `variants.${index}.attributes.${attrIndex}.value`,
+                rules.requiredStr,
+              )}
+              error={
+                !!errors?.variants?.[index]?.attributes?.[attrIndex]?.value
+              }
+              InputLabelProps={{ shrink: true }}
+            />
+            <IconButton
+              color="error"
+              size="small"
+              onClick={() => removeAttribute(attrIndex)}
+            >
+              <DeleteOutlineRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ))}
+      </Stack>
+      <Button
+        variant="text"
+        size="small"
+        startIcon={<AddCircleOutlineRoundedIcon />}
+        onClick={() => addAttribute({ name: "", value: "" })}
+        sx={{ textTransform: "none", fontWeight: 600 }}
+      >
+        Add Attribute
+      </Button>
+    </Box>
+  );
+};
+
+// ======================================================================
+// MAIN UPDATE PRODUCT COMPONENT
+// ======================================================================
 export const ProductUpdate = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
@@ -42,463 +230,923 @@ export const ProductUpdate = () => {
   const selectedProduct = useSelector(selectSelectedProduct);
   const brands = useSelector(selectBrands);
   const categories = useSelector(selectCategories);
-  const productUpdateStatus = useSelector(selectProductUpdateStatus);
+  const products = useSelector(selectProducts);
+  const status = useSelector(selectProductUpdateStatus);
 
-  const theme = useTheme();
-  const is480 = useMediaQuery(theme.breakpoints.down(480));
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // State for Cloudinary upload loaders
-  const [isUploadingThumb, setIsUploadingThumb] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState({});
+  // Local File & Preview States
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [galleryFiles, setGalleryFiles] = useState({});
+  const [galleryPreviews, setGalleryPreviews] = useState({});
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
-    setValue,
     watch,
+    setValue,
     formState: { errors },
-  } = useForm();
+  } = useForm({ mode: "onBlur" });
 
-  // Watch values for real-time image previews
-  const formValues = watch();
-  const thumbnailUrl = formValues.thumbnail;
+  const isBundle = watch("isBundle");
+  const hasVariants = watch("hasVariants");
+  const title = watch("title");
 
-  // ✅ Fetch product
+  const {
+    fields: globalAttributes,
+    append: addGlobalAttribute,
+    remove: removeGlobalAttribute,
+  } = useFieldArray({ control, name: "attributes" });
+  const {
+    fields: variantFields,
+    append: addVariant,
+    remove: removeVariant,
+  } = useFieldArray({ control, name: "variants" });
+
+  // 1. Initialization
   useEffect(() => {
-    if (id) dispatch(fetchProductByIdAsync(id));
-  }, [id, dispatch]);
-
-  // ✅ Set form values properly
-  useEffect(() => {
-    if (selectedProduct) {
-      reset({
-        title: selectedProduct.title,
-        description: selectedProduct.description,
-        basePrice: selectedProduct.basePrice,
-        discountPercentage: selectedProduct.discountPercentage,
-        stockQuantity: selectedProduct.stockQuantity,
-        thumbnail: selectedProduct.thumbnail,
-        brand: selectedProduct.brand?._id || "",
-        category: selectedProduct.category?._id || "",
-        isDealOfTheDay: selectedProduct.isDealOfTheDay || false,
-        ...selectedProduct.images.reduce((acc, img, i) => {
-          acc[`image${i}`] = img;
-          return acc;
-        }, {}),
-      });
-    }
-  }, [selectedProduct, reset]);
-
-  // ✅ Update status handling & Navigate Back
-  useEffect(() => {
-    if (productUpdateStatus === "fulfilled") {
-      toast.success("Product Updated successfully!");
-      navigate(-1); // 🔙 True navigate back to previous screen
-    } else if (productUpdateStatus === "rejected") {
-      toast.error("Error updating product");
-    }
-  }, [productUpdateStatus, navigate]);
-
-  // ✅ Cleanup
-  useEffect(() => {
+    dispatch(fetchProductByIdAsync(id));
+    if (!products || products.length === 0) dispatch(fetchProductsAsync());
     return () => {
       dispatch(clearSelectedProduct());
       dispatch(resetProductUpdateStatus());
     };
-  }, [dispatch]);
+  }, [dispatch, id, products]);
 
-  // ✅ Submit
-  const handleProductUpdate = (data) => {
-    const images = Object.keys(data)
-      .filter((key) => key.startsWith("image"))
-      .map((key) => data[key]);
-
-    const updatedProduct = {
-      ...data,
-      _id: selectedProduct._id,
-      images,
-    };
-
-    dispatch(updateProductByIdAsync(updatedProduct));
-  };
-
-  // ✅ Cloudinary Handlers
-  const handleThumbnailUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      setIsUploadingThumb(true);
-      const url = await uploadImageToCloudinary(file);
-      setValue("thumbnail", url, { shouldValidate: true, shouldDirty: true });
-      toast.success("Thumbnail uploaded successfully!");
-    } catch (error) {
-      toast.error("Thumbnail upload failed.");
-    } finally {
-      setIsUploadingThumb(false);
+  // Auto-generate Slug from Title
+  useEffect(() => {
+    if (title) {
+      const generatedSlug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+      setValue("slug", generatedSlug, { shouldValidate: true });
     }
-  };
+  }, [title, setValue]);
 
-  const handleAdditionalImageUpload = async (e, index) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      setUploadingImages((prev) => ({ ...prev, [index]: true }));
-      const url = await uploadImageToCloudinary(file);
-      setValue(`image${index}`, url, {
-        shouldValidate: true,
-        shouldDirty: true,
+  // 2. Populate Form with Existing Data
+  useEffect(() => {
+    if (selectedProduct && selectedProduct._id === id) {
+      // 🚨 FIX: Pass the entire nested attributes array directly into the form
+      const mappedVariants =
+        selectedProduct.variants?.map((v) => ({
+          sku: v.sku,
+          price: v.price,
+          stockQuantity: v.stockQuantity,
+          attributes: v.attributes || [],
+        })) || [];
+
+      reset({
+        title: selectedProduct.title,
+        slug: selectedProduct.slug,
+        sku: selectedProduct.sku,
+        description: selectedProduct.description,
+        basePrice: selectedProduct.basePrice,
+        discountPercentage: selectedProduct.discountPercentage,
+        stockQuantity: selectedProduct.stockQuantity,
+        category: selectedProduct.category?._id || "",
+        brand: selectedProduct.brand?._id || "",
+        isActive: selectedProduct.isActive,
+        isDealOfTheDay: selectedProduct.isDealOfTheDay,
+        isFlashSale: selectedProduct.isFlashSale,
+        isBundle: selectedProduct.isBundle,
+        hasVariants: selectedProduct.hasVariants,
+        bundleItems: selectedProduct.bundleItems?.map((b) => b._id || b) || [],
+        attributes: selectedProduct.attributes || [], // Global Attributes
+        variants: mappedVariants,
+        metaTitle: selectedProduct.seo?.metaTitle || "",
+        metaDescription: selectedProduct.seo?.metaDescription || "",
+        seoKeywords: selectedProduct.seo?.keywords?.join(", ") || "",
       });
-      toast.success(`Image ${index + 1} updated!`);
-    } catch (error) {
-      toast.error("Image upload failed.");
-    } finally {
-      setUploadingImages((prev) => ({ ...prev, [index]: false }));
+
+      // Populate Image Previews from DB URLs
+      if (selectedProduct.thumbnail)
+        setThumbnailPreview(selectedProduct.thumbnail);
+      const loadedGallery = {};
+      selectedProduct.images?.forEach((img, i) => {
+        loadedGallery[i] = img;
+      });
+      setGalleryPreviews(loadedGallery);
     }
+  }, [selectedProduct, id, reset]);
+
+  // 3. Status Handling
+  useEffect(() => {
+    if (status === "fulfilled" && isSubmitted) {
+      toast.success("Product updated successfully!");
+      setIsSubmitted(false);
+      navigate(-1);
+    } else if (status === "rejected" && isSubmitted) {
+      toast.error(
+        "Failed to update product. Check if SKU/Slug already exists.",
+      );
+      setIsSubmitted(false);
+    }
+  }, [status, isSubmitted, navigate]);
+
+  // 4. Image Handlers
+  const handleThumbnailSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setThumbnailFile(file);
+    setThumbnailPreview(URL.createObjectURL(file));
   };
+
+  const handleGallerySelect = (e, index) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setGalleryFiles((prev) => ({ ...prev, [index]: file }));
+    setGalleryPreviews((prev) => ({
+      ...prev,
+      [index]: URL.createObjectURL(file),
+    }));
+  };
+
+  // 5. Form Submission
+  const handleUpdateProduct = (data) => {
+    if (!thumbnailPreview && !thumbnailFile) {
+      toast.error("Main thumbnail is required!");
+      return;
+    }
+
+    setIsSubmitted(true);
+    const formData = new FormData();
+    formData.append("_id", id); // Required for backend update route
+
+    // Text Fields
+    formData.append("title", data.title);
+    formData.append("slug", data.slug);
+    formData.append("sku", data.sku);
+    formData.append("description", data.description);
+    formData.append("basePrice", hasVariants ? 0 : Number(data.basePrice));
+    formData.append("discountPercentage", Number(data.discountPercentage));
+    formData.append(
+      "stockQuantity",
+      hasVariants ? 0 : Number(data.stockQuantity),
+    );
+    formData.append("category", data.category);
+    if (data.brand) formData.append("brand", data.brand);
+
+    // Booleans
+    formData.append("isActive", data.isActive);
+    formData.append("isDealOfTheDay", data.isDealOfTheDay);
+    formData.append("isFlashSale", data.isFlashSale);
+    formData.append("isBundle", data.isBundle);
+    formData.append("hasVariants", data.hasVariants);
+
+    // JSON Arrays
+    const keywordsArray = data.seoKeywords
+      ? data.seoKeywords.split(",").map((k) => k.trim())
+      : [];
+    formData.append(
+      "seo",
+      JSON.stringify({
+        metaTitle: data.metaTitle,
+        metaDescription: data.metaDescription,
+        keywords: keywordsArray,
+      }),
+    );
+
+    // Global Attributes & Bundles
+    formData.append("attributes", JSON.stringify(data.attributes));
+    formData.append(
+      "bundleItems",
+      JSON.stringify(data.isBundle ? data.bundleItems : []),
+    );
+
+    // 🚨 FIX: Reformat Variants mapping to include nested attributes
+    const formattedVariants =
+      data.variants?.map((v) => ({
+        sku: v.sku,
+        price: Number(v.price),
+        stockQuantity: Number(v.stockQuantity),
+        attributes: v.attributes || [], // Send the array of {name, value} pairs
+      })) || [];
+    formData.append("variants", JSON.stringify(formattedVariants));
+
+    // Files (Only appended if user selected new ones)
+    if (thumbnailFile) formData.append("thumbnail", thumbnailFile);
+    [0, 1, 2, 3].forEach((i) => {
+      if (galleryFiles[i]) formData.append(`image${i}`, galleryFiles[i]);
+    });
+
+    dispatch(updateProductByIdAsync(formData));
+  };
+
+  // Loading Guard
+  if (!selectedProduct) {
+    return (
+      <Box display="flex" justifyContent="center" mt={10}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Stack alignItems="center" p={2}>
-      {selectedProduct && (
-        <Stack
-          width="60rem"
-          maxWidth="100%"
-          spacing={4}
-          component="form"
-          noValidate // Disables default HTML5 validation bubbles to use MUI's styled errors
-          onSubmit={handleSubmit(handleProductUpdate)}
-        >
-          {/* TITLE */}
-          <Stack>
-            <Typography fontWeight={600} mb={1}>
-              Title
-            </Typography>
-            <TextField
-              {...register("title", {
-                required: "Product title is required",
-                minLength: {
-                  value: 3,
-                  message: "Title must be at least 3 characters long",
-                },
-              })}
-              error={!!errors.title}
-              helperText={errors.title?.message}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Stack>
-
-          {/* BRAND + CATEGORY */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <FormControl fullWidth error={!!errors.brand}>
-              <InputLabel id="brand-select-label">Brand</InputLabel>
-              <Select
-                labelId="brand-select-label"
-                label="Brand"
-                {...register("brand", { required: "Brand is required" })}
-                defaultValue={selectedProduct.brand?._id || ""}
-              >
-                <MenuItem value="" disabled>
-                  Select a brand
-                </MenuItem>
-                {brands.map((b) => (
-                  <MenuItem key={b._id} value={b._id}>
-                    {b.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.brand && (
-                <FormHelperText>{errors.brand.message}</FormHelperText>
-              )}
-            </FormControl>
-
-            <FormControl fullWidth error={!!errors.category}>
-              <InputLabel id="category-select-label">Category</InputLabel>
-              <Select
-                labelId="category-select-label"
-                label="Category"
-                {...register("category", { required: "Category is required" })}
-                defaultValue={selectedProduct.category?._id || ""}
-              >
-                <MenuItem value="" disabled>
-                  Select a category
-                </MenuItem>
-                {categories.map((c) => (
-                  <MenuItem key={c._id} value={c._id}>
-                    {c.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {errors.category && (
-                <FormHelperText>{errors.category.message}</FormHelperText>
-              )}
-            </FormControl>
-          </Stack>
-
-          {/* DESCRIPTION */}
-          <Stack>
-            <Typography fontWeight={600} mb={1}>
-              Description
-            </Typography>
-            <TextField
-              multiline
-              rows={4}
-              {...register("description", {
-                required: "Description is required",
-              })}
-              error={!!errors.description}
-              helperText={errors.description?.message}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Stack>
-
-          {/* PRICE */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField
-              label="Base Price ($)"
-              type="number"
-              fullWidth
-              {...register("basePrice", {
-                required: "Base price is required",
-                min: { value: 0, message: "Price cannot be negative" },
-              })}
-              error={!!errors.basePrice}
-              helperText={errors.basePrice?.message}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Discount Percentage (%)"
-              type="number"
-              fullWidth
-              {...register("discountPercentage", {
-                min: { value: 0, message: "Discount cannot be negative" },
-                max: { value: 100, message: "Discount cannot exceed 100%" },
-              })}
-              error={!!errors.discountPercentage}
-              helperText={errors.discountPercentage?.message}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Stack>
-
-          {/* STOCK */}
-          <TextField
-            label="Stock Quantity"
-            type="number"
-            {...register("stockQuantity", {
-              required: "Stock quantity is required",
-              min: { value: 0, message: "Stock cannot be negative" },
-            })}
-            error={!!errors.stockQuantity}
-            helperText={errors.stockQuantity?.message}
-            InputLabelProps={{ shrink: true }}
-          />
-          {/* ========================================== */}
-          {/* 🌟 VISIBILITY & PROMOTIONS */}
-          {/* ========================================== */}
-          <Box
-            sx={{
-              p: 2,
-              border: "1px solid #e5e7eb",
-              borderRadius: 2,
-              bgcolor: "#f9fafb",
-            }}
+    <Box sx={{ width: "100%", pb: 10, bgcolor: UI.bg, minHeight: "100vh" }}>
+      {/* HEADER */}
+      <Box sx={{ px: { xs: 3, md: 5 }, pt: 4, pb: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{ bgcolor: UI.cardBg, border: UI.border }}
           >
-            <FormControlLabel
-              control={
-                <Switch color="warning" {...register("isDealOfTheDay")} />
-              }
-              label={
-                <Typography variant="body2" fontWeight={700}>
-                  Promote as "Deal of the Day"
-                </Typography>
-              }
-              sx={{ m: 0 }}
-            />
-          </Box>
+            <ArrowBackRoundedIcon fontSize="small" />
+          </IconButton>
+          <Typography
+            variant="h4"
+            fontWeight={800}
+            color={UI.textMain}
+            letterSpacing="-0.02em"
+          >
+            Edit Product
+          </Typography>
+        </Stack>
+        <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />}>
+          <Link to="/" style={{ textDecoration: "none", color: UI.textMuted }}>
+            Dashboard
+          </Link>
+          <Link
+            to="/products"
+            style={{ textDecoration: "none", color: UI.textMuted }}
+          >
+            Products
+          </Link>
+          <Typography color={UI.textSecondary} fontWeight={600}>
+            {selectedProduct.title}
+          </Typography>
+        </Breadcrumbs>
+      </Box>
 
-          {/* ========================================== */}
-          {/* 🖼️ CLOUDINARY THUMBNAIL UPLOAD UI */}
-          {/* ========================================== */}
-          <Stack>
-            <Typography fontWeight={600} mb={1}>
-              Main Thumbnail{" "}
-              {errors.thumbnail && (
-                <span
-                  style={{
-                    color: "#d32f2f",
-                    fontSize: "0.85rem",
-                    fontWeight: 400,
-                  }}
-                >
-                  {" "}
-                  - Required
-                </span>
-              )}
-            </Typography>
-            <input
-              type="hidden"
-              {...register("thumbnail", {
-                required: "Thumbnail image is required",
-              })}
-            />
-            <input
-              accept="image/*"
-              style={{ display: "none" }}
-              id="upload-thumbnail"
-              type="file"
-              onChange={handleThumbnailUpload}
-            />
-            <label htmlFor="upload-thumbnail">
-              <Box
+      {/* FORM GRID */}
+      <Box
+        component="form"
+        noValidate
+        onSubmit={handleSubmit(handleUpdateProduct)}
+        sx={{ px: { xs: 3, md: 5 } }}
+      >
+        <Grid container spacing={4}>
+          {/* ==================================================== */}
+          {/* LEFT MAIN COLUMN: Data, Media, Pricing, Variants     */}
+          {/* ==================================================== */}
+          <Grid item xs={12} lg={8}>
+            <Stack spacing={4}>
+              {/* 1. BASIC INFO */}
+              <Paper
                 sx={{
-                  width: "100%",
-                  height: 250,
-                  border: "2px dashed",
-                  borderColor: errors.thumbnail ? "#d32f2f" : "#d1d5db", // Turns red if empty and submitted
-                  borderRadius: 2,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  bgcolor: "#f9fafb",
-                  cursor: "pointer",
-                  position: "relative",
-                  overflow: "hidden",
-                  "&:hover": { borderColor: "#6366f1", bgcolor: "#eff6ff" },
+                  p: 4,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
                 }}
               >
-                {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt="Thumbnail Preview"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                      opacity: isUploadingThumb ? 0.3 : 1,
-                    }}
+                <Typography variant="h6" fontWeight={700} mb={3}>
+                  General Information
+                </Typography>
+                <Stack spacing={3}>
+                  <TextField
+                    fullWidth
+                    label="Product Title *"
+                    {...register("title", rules.requiredStr)}
+                    error={!!errors.title}
+                    helperText={errors.title?.message}
+                    InputLabelProps={{ shrink: true }}
                   />
-                ) : (
-                  <Stack alignItems="center" spacing={1}>
-                    {isUploadingThumb ? (
-                      <CircularProgress size={28} />
-                    ) : (
-                      <CloudUploadRoundedIcon
-                        sx={{
-                          color: errors.thumbnail ? "#d32f2f" : "#9ca3af",
-                          fontSize: 40,
-                        }}
-                      />
-                    )}
-                    <Typography
-                      color={errors.thumbnail ? "error" : "primary"}
-                      fontWeight={600}
-                    >
-                      Click to upload thumbnail
-                    </Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
+                    <TextField
+                      fullWidth
+                      label="URL Slug *"
+                      {...register("slug", rules.slug)}
+                      error={!!errors.slug}
+                      helperText={errors.slug?.message}
+                      InputLabelProps={{ shrink: true }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LinkRoundedIcon fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Parent SKU *"
+                      {...register("sku", rules.sku)}
+                      error={!!errors.sku}
+                      helperText={errors.sku?.message}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ input: { textTransform: "uppercase" } }}
+                    />
                   </Stack>
-                )}
-              </Box>
-            </label>
-          </Stack>
+                  <TextField
+                    fullWidth
+                    label="Description *"
+                    multiline
+                    rows={5}
+                    {...register("description", rules.requiredStr)}
+                    error={!!errors.description}
+                    helperText={errors.description?.message}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Stack>
+              </Paper>
 
-          {/* ========================================== */}
-          {/* 📸 CLOUDINARY ADDITIONAL IMAGES UI */}
-          {/* ========================================== */}
-          <Stack spacing={2}>
-            <Typography fontWeight={600}>Additional Images</Typography>
-            <Grid container spacing={2}>
-              {selectedProduct.images?.map((_, i) => {
-                const imgVal = formValues[`image${i}`];
-                const isUploading = uploadingImages[i];
+              {/* 2. MEDIA */}
+              <Paper
+                sx={{
+                  p: 4,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
+                }}
+              >
+                <Typography variant="h6" fontWeight={700} mb={1}>
+                  Media
+                </Typography>
+                <Typography variant="body2" color={UI.textMuted} mb={3}>
+                  Upload a main thumbnail and up to 4 gallery images.
+                </Typography>
 
-                return (
-                  <Grid item xs={12} sm={6} md={4} key={i}>
-                    <input type="hidden" {...register(`image${i}`)} />
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={4}>
                     <input
                       accept="image/*"
                       style={{ display: "none" }}
-                      id={`upload-image-${i}`}
+                      id="upload-thumbnail"
                       type="file"
-                      onChange={(e) => handleAdditionalImageUpload(e, i)}
+                      onChange={handleThumbnailSelect}
                     />
-                    <label htmlFor={`upload-image-${i}`}>
+                    <label htmlFor="upload-thumbnail">
                       <Box
                         sx={{
-                          height: 150,
-                          border: "2px dashed #d1d5db",
+                          height: 180,
+                          border: "2px dashed",
+                          borderColor:
+                            !thumbnailPreview && isSubmitted
+                              ? "#ef4444"
+                              : "#d1d5db",
                           borderRadius: 2,
                           display: "flex",
+                          flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
                           bgcolor: "#f9fafb",
                           cursor: "pointer",
-                          position: "relative",
-                          overflow: "hidden",
-                          "&:hover": {
-                            borderColor: "#6366f1",
-                            bgcolor: "#eff6ff",
-                          },
+                          "&:hover": { borderColor: UI.primary },
                         }}
                       >
-                        {imgVal ? (
+                        {thumbnailPreview ? (
                           <img
-                            src={imgVal}
-                            alt={`Product Image ${i + 1}`}
+                            src={thumbnailPreview}
+                            alt="Thumb"
                             style={{
                               maxWidth: "100%",
                               maxHeight: "100%",
                               objectFit: "contain",
-                              opacity: isUploading ? 0.3 : 1,
                             }}
                           />
                         ) : (
                           <Stack alignItems="center" spacing={1}>
-                            {isUploading ? (
-                              <CircularProgress size={24} />
-                            ) : (
-                              <CloudUploadRoundedIcon
-                                sx={{ color: "#9ca3af" }}
-                              />
-                            )}
+                            <CloudUploadRoundedIcon
+                              sx={{
+                                color:
+                                  !thumbnailPreview && isSubmitted
+                                    ? "#ef4444"
+                                    : "#9ca3af",
+                                fontSize: 32,
+                              }}
+                            />
                             <Typography
                               variant="caption"
-                              color="primary"
+                              color={
+                                !thumbnailPreview && isSubmitted
+                                  ? "error"
+                                  : "primary"
+                              }
                               fontWeight={600}
                             >
-                              Replace Image {i + 1}
+                              Main Thumbnail *
                             </Typography>
                           </Stack>
                         )}
                       </Box>
                     </label>
                   </Grid>
-                );
-              })}
-            </Grid>
-          </Stack>
 
-          {/* ACTIONS */}
-          <Stack direction="row" justifyContent="flex-end" spacing={2} pt={2}>
-            <Button
-              variant="outlined"
-              color="inherit"
-              onClick={() => navigate(-1)} // 🔙 Safely cancel and go back
+                  <Grid item xs={12} sm={8}>
+                    <Grid container spacing={2}>
+                      {[0, 1, 2, 3].map((i) => {
+                        const preview = galleryPreviews[i];
+                        return (
+                          <Grid item xs={6} key={i}>
+                            <input
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              id={`upload-image-${i}`}
+                              type="file"
+                              onChange={(e) => handleGallerySelect(e, i)}
+                            />
+                            <label htmlFor={`upload-image-${i}`}>
+                              <Box
+                                sx={{
+                                  height: 82,
+                                  border: "1px dashed #d1d5db",
+                                  borderRadius: 2,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  bgcolor: "#f9fafb",
+                                  cursor: "pointer",
+                                  "&:hover": { borderColor: UI.primary },
+                                }}
+                              >
+                                {preview ? (
+                                  <img
+                                    src={preview}
+                                    alt={`Gallery ${i}`}
+                                    style={{
+                                      maxWidth: "100%",
+                                      maxHeight: "100%",
+                                      objectFit: "contain",
+                                    }}
+                                  />
+                                ) : (
+                                  <Stack alignItems="center">
+                                    <CloudUploadRoundedIcon
+                                      sx={{ color: "#9ca3af", fontSize: 20 }}
+                                    />
+                                    <Typography
+                                      variant="caption"
+                                      color="textSecondary"
+                                    >
+                                      Gallery {i + 1}
+                                    </Typography>
+                                  </Stack>
+                                )}
+                              </Box>
+                            </label>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* 3. GLOBAL ATTRIBUTES */}
+              <Paper
+                sx={{
+                  p: 4,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
+                }}
+              >
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={3}
+                >
+                  <Box>
+                    <Typography variant="h6" fontWeight={700}>
+                      Global Attributes
+                    </Typography>
+                    <Typography variant="body2" color={UI.textMuted}>
+                      Applies to the entire product (e.g. Brand, Warranty).
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddCircleOutlineRoundedIcon />}
+                    onClick={() => addGlobalAttribute({ name: "", value: "" })}
+                    sx={{ textTransform: "none", fontWeight: 600 }}
+                  >
+                    Add
+                  </Button>
+                </Stack>
+                {globalAttributes.length > 0 && (
+                  <Stack spacing={2}>
+                    {globalAttributes.map((field, index) => (
+                      <Stack
+                        key={field.id}
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                      >
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Name"
+                          placeholder="e.g. Warranty"
+                          {...register(
+                            `attributes.${index}.name`,
+                            rules.requiredStr,
+                          )}
+                          error={!!errors?.attributes?.[index]?.name}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Value"
+                          placeholder="e.g. 1 Year"
+                          {...register(
+                            `attributes.${index}.value`,
+                            rules.requiredStr,
+                          )}
+                          error={!!errors?.attributes?.[index]?.value}
+                          InputLabelProps={{ shrink: true }}
+                        />
+                        <IconButton
+                          color="error"
+                          onClick={() => removeGlobalAttribute(index)}
+                        >
+                          <DeleteOutlineRoundedIcon />
+                        </IconButton>
+                      </Stack>
+                    ))}
+                  </Stack>
+                )}
+              </Paper>
+
+              {/* 4. PRICING, INVENTORY & VARIANTS */}
+              <Paper
+                sx={{
+                  p: 4,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
+                }}
+              >
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={2}
+                >
+                  <Typography variant="h6" fontWeight={700}>
+                    Pricing & Inventory
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="hasVariants"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="primary"
+                            checked={field.value}
+                            onChange={(e) => {
+                              field.onChange(e.target.checked);
+                              if (
+                                e.target.checked &&
+                                variantFields.length === 0
+                              )
+                                addVariant({
+                                  sku: "",
+                                  price: "",
+                                  stockQuantity: "",
+                                  attributes: [{ name: "", value: "" }],
+                                });
+                            }}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={600}>
+                        This product has variants
+                      </Typography>
+                    }
+                  />
+                </Stack>
+                <Divider sx={{ mb: 3 }} />
+
+                {/* Standard Pricing */}
+                <Collapse in={!hasVariants}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
+                    <TextField
+                      fullWidth
+                      label="Price ($) *"
+                      type="number"
+                      {...register("basePrice", hasVariants ? {} : rules.price)}
+                      error={!!errors.basePrice}
+                      helperText={errors.basePrice?.message}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Stock Quantity *"
+                      type="number"
+                      {...register(
+                        "stockQuantity",
+                        hasVariants ? {} : rules.stock,
+                      )}
+                      error={!!errors.stockQuantity}
+                      helperText={errors.stockQuantity?.message}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Discount (%)"
+                      type="number"
+                      {...register("discountPercentage", { min: 0, max: 100 })}
+                      error={!!errors.discountPercentage}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Stack>
+                </Collapse>
+
+                {/* Variant Builder */}
+                <Collapse in={hasVariants}>
+                  <Box
+                    sx={{
+                      p: 3,
+                      bgcolor: "#f3f4f6",
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={700}
+                      mb={2}
+                      color={UI.primary}
+                    >
+                      Variant Configurations
+                    </Typography>
+
+                    {variantFields.map((field, index) => (
+                      <VariantRow
+                        key={field.id}
+                        control={control}
+                        register={register}
+                        index={index}
+                        removeVariant={removeVariant}
+                        errors={errors}
+                      />
+                    ))}
+
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<AddCircleOutlineRoundedIcon />}
+                      onClick={() =>
+                        addVariant({
+                          sku: "",
+                          price: "",
+                          stockQuantity: "",
+                          attributes: [{ name: "", value: "" }],
+                        })
+                      }
+                      sx={{ mt: 1, textTransform: "none", fontWeight: 700 }}
+                    >
+                      Add Another Variant
+                    </Button>
+                  </Box>
+                </Collapse>
+              </Paper>
+            </Stack>
+          </Grid>
+
+          {/* ==================================================== */}
+          {/* RIGHT COLUMN: Organization, Visibility, Publish      */}
+          {/* ==================================================== */}
+          <Grid item xs={12} lg={4}>
+            <Box
+              sx={{
+                position: "sticky",
+                top: 24,
+                display: "flex",
+                flexDirection: "column",
+                gap: 3,
+              }}
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={
-                isUploadingThumb || Object.values(uploadingImages).some(Boolean)
-              }
-            >
-              Update Product
-            </Button>
-          </Stack>
-        </Stack>
-      )}
-    </Stack>
+              {/* Organization */}
+              <Paper
+                sx={{
+                  p: 3,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
+                }}
+              >
+                <Typography variant="h6" fontWeight={700} mb={2}>
+                  Organization
+                </Typography>
+                <Stack spacing={3}>
+                  <FormControl fullWidth error={!!errors.category}>
+                    <InputLabel>Category *</InputLabel>
+                    <Select
+                      label="Category *"
+                      {...register("category", rules.requiredStr)}
+                      defaultValue={selectedProduct.category?._id || ""}
+                    >
+                      {categories?.map((c) => (
+                        <MenuItem key={c._id} value={c._id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.category && (
+                      <FormHelperText>{errors.category.message}</FormHelperText>
+                    )}
+                  </FormControl>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Brand</InputLabel>
+                    <Select
+                      label="Brand"
+                      {...register("brand")}
+                      defaultValue={selectedProduct.brand?._id || ""}
+                    >
+                      <MenuItem value="">
+                        <em>None</em>
+                      </MenuItem>
+                      {brands?.map((b) => (
+                        <MenuItem key={b._id} value={b._id}>
+                          {b.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+              </Paper>
+
+              {/* Visibility & Promotions */}
+              <Paper
+                sx={{
+                  p: 3,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
+                }}
+              >
+                <Typography variant="h6" fontWeight={700} mb={2}>
+                  Storefront Visibility
+                </Typography>
+                <Stack spacing={1}>
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="isActive"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="success"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={600}>
+                        Active Product
+                      </Typography>
+                    }
+                  />
+                  <Divider sx={{ my: 1 }} />
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="isDealOfTheDay"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="warning"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={600}>
+                        Promote as Deal of the Day
+                      </Typography>
+                    }
+                  />
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="isFlashSale"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="error"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={600}>
+                        Include in Flash Sale
+                      </Typography>
+                    }
+                  />
+                  <Divider sx={{ my: 1 }} />
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="isBundle"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="info"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="body2" fontWeight={600}>
+                          Is a Combo/Bundle
+                        </Typography>
+                        <Tooltip title="Allows you to link other products that are included in this bundle.">
+                          <InfoOutlinedIcon
+                            sx={{ fontSize: 16, color: UI.textMuted }}
+                          />
+                        </Tooltip>
+                      </Box>
+                    }
+                  />
+                  <Collapse in={isBundle}>
+                    <FormControl fullWidth sx={{ mt: 1 }} size="small">
+                      <InputLabel>Select Included Products</InputLabel>
+                      <Select
+                        multiple
+                        {...register("bundleItems")}
+                        defaultValue={
+                          selectedProduct.bundleItems?.map((b) => b._id || b) ||
+                          []
+                        }
+                      >
+                        {products?.length > 0 ? (
+                          products.map((p) => (
+                            <MenuItem key={p._id} value={p._id}>
+                              {p.title}
+                            </MenuItem>
+                          ))
+                        ) : (
+                          <MenuItem disabled>No products available</MenuItem>
+                        )}
+                      </Select>
+                    </FormControl>
+                  </Collapse>
+                </Stack>
+              </Paper>
+
+              {/* Publish Action */}
+              <Paper
+                sx={{
+                  p: 3,
+                  borderRadius: UI.radius,
+                  border: UI.border,
+                  boxShadow: UI.shadow,
+                }}
+              >
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  disabled={status === "pending"}
+                  sx={{
+                    bgcolor: UI.primary,
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    boxShadow: "0 4px 6px -1px rgb(79 70 229 / 0.3)",
+                  }}
+                >
+                  {status === "pending" && isSubmitted
+                    ? "Saving Changes..."
+                    : "Update Product"}
+                </Button>
+                <Button
+                  variant="text"
+                  fullWidth
+                  sx={{ mt: 1, color: UI.textMuted, fontWeight: 600 }}
+                  onClick={() => navigate(-1)}
+                >
+                  Discard Changes
+                </Button>
+              </Paper>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
   );
 };

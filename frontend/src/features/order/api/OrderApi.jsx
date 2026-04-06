@@ -27,7 +27,6 @@ export const verifyAndCreateOrder = async (verificationData) => {
   }
 };
 
-// 🚨 FIX: Removed ID from URL. Backend uses the JWT token securely.
 export const getOrderByUserId = async () => {
   try {
     const res = await axiosi.get(`/orders`);
@@ -37,7 +36,16 @@ export const getOrderByUserId = async () => {
   }
 };
 
-// 🚨 FIX: Changed to /orders/admin to match your secured Admin route
+// 🚨 NEW: Added getOrderById for Track Order & Details pages
+export const getOrderById = async (id) => {
+  try {
+    const res = await axiosi.get(`/orders/${id}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 export const getAllOrders = async () => {
   try {
     const res = await axiosi.get(`/orders/admin`);

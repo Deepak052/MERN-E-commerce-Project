@@ -13,9 +13,15 @@ const cartSchema = new Schema(
       ref: "Product",
       required: true,
     },
+    // 🚨 NEW: Store the specific variant ID chosen by the user
+    variantId: {
+      type: Schema.Types.ObjectId,
+      default: null, // Null if the product has no variants
+    },
     quantity: {
       type: Number,
       default: 1,
+      min: 1,
     },
   },
   {

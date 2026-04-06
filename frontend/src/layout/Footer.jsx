@@ -1,158 +1,252 @@
-import { Box, IconButton, TextField, Typography, useMediaQuery, useTheme } from '@mui/material'
-import { Stack } from '@mui/material'
-import React from 'react'
-import { QRCodePng, appStorePng, googlePlayPng ,facebookPng,instagramPng,twitterPng,linkedinPng} from '../assets'
-import SendIcon from '@mui/icons-material/Send';
-import { MotionConfig, motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  Box,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
+  useTheme,
+  Divider,
+} from "@mui/material";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import { motion } from "framer-motion";
 
-
+// Assets
+import {
+  QRCodePng,
+  appStorePng,
+  googlePlayPng,
+  facebookPng,
+  instagramPng,
+  twitterPng,
+  linkedinPng,
+} from "../assets";
 
 export const Footer = () => {
+  const theme = useTheme();
 
-    const theme=useTheme()
-    const is700=useMediaQuery(theme.breakpoints.down(700))
+  const linkStyles = {
+    color: "#9ca3af", // text-gray-400
+    textDecoration: "none",
+    fontWeight: 500,
+    fontSize: "0.95rem",
+    transition: "color 0.2s ease-in-out",
+    "&:hover": {
+      color: "#ffffff",
+    },
+  };
 
-    const labelStyles={
-        fontWeight:300,
-        cursor:'pointer'
-    }
+  const titleStyles = {
+    color: "#ffffff",
+    fontWeight: 700,
+    letterSpacing: "0.05em",
+    mb: 3,
+  };
 
   return (
-    <Stack
+    <Box
       sx={{
-        backgroundColor: theme.palette.primary.main,
-        paddingTop: "3rem",
-        paddingLeft: is700 ? "1rem" : "3rem",
-        paddingRight: is700 ? "1rem" : "3rem",
-        paddingBottom: "1.5rem",
-        rowGap: "5rem",
-        color: theme.palette.primary.light,
-        justifyContent: "space-around",
+        backgroundColor: "#111827", // Deep professional dark background
+        color: "#ffffff",
+        pt: { xs: 8, md: 10 },
+        pb: 4,
       }}
     >
-      {/* upper */}
-      <Stack
-        flexDirection={"row"}
-        rowGap={"1rem"}
-        justifyContent={is700 ? "" : "space-around"}
-        flexWrap={"wrap"}
-      >
-        <Stack rowGap={"1rem"} padding={"1rem"}>
-          <Typography variant="h6" fontSize={"1.5rem"}>
-            Exclusive
-          </Typography>
-          <Typography variant="h6">Subscribe</Typography>
-          <Typography sx={labelStyles}>Get 10% off your first order</Typography>
-          <TextField
-            placeholder="Enter your email"
-            sx={{ border: "1px solid white", borderRadius: "6px" }}
-            InputProps={{
-              endAdornment: (
-                <IconButton>
-                  <SendIcon sx={{ color: theme.palette.primary.light }} />
-                </IconButton>
-              ),
-              style: { color: "whitesmoke" },
-            }}
-          />
-        </Stack>
-
-        <Stack rowGap={"1rem"} padding={"1rem"}>
-          <Typography variant="h6">Support</Typography>
-          <Typography sx={labelStyles}>
-            11th Main Street, Dhaka, DH 1515, California.
-          </Typography>
-          <Typography sx={labelStyles}>exclusive@gmail.com</Typography>
-          <Typography sx={labelStyles}>+88015-88888-9999</Typography>
-        </Stack>
-
-        <Stack rowGap={"1rem"} padding={"1rem"}>
-          <Typography variant="h6">Account</Typography>
-          <Typography sx={labelStyles}>My Account</Typography>
-          <Typography sx={labelStyles}>Login / Register</Typography>
-          <Typography sx={labelStyles}>Cart</Typography>
-          <Typography sx={labelStyles}>Wishlist</Typography>
-          <Typography sx={labelStyles}>Shop</Typography>
-        </Stack>
-
-        <Stack rowGap={"1rem"} padding={"1rem"}>
-          <Typography variant="h6">Quick Links</Typography>
-          <Typography sx={labelStyles}>Privacy Policy</Typography>
-          <Typography sx={labelStyles}>Terms Of Use</Typography>
-          <Typography sx={labelStyles}>FAQ</Typography>
-          <Typography sx={labelStyles}>Contact</Typography>
-        </Stack>
-
-        <Stack rowGap={"1rem"} padding={"1rem"}>
-          <Typography variant="h6">Download App</Typography>
-          <Typography
-            sx={{ ...labelStyles, color: "graytext", fontWeight: 500 }}
-          >
-            Save $3 with App New User Only
-          </Typography>
-          <Stack flexDirection={"row"} columnGap={".5rem"}>
-            <Box width={"100px"} height={"100px"}>
-              <img
-                src={QRCodePng}
-                height={"100%"}
-                width={"100%"}
-                style={{ objectFit: "contain" }}
-                alt="QR Code"
+      <Container maxWidth="xl">
+        <Grid
+          container
+          spacing={{ xs: 6, md: 4 }}
+          justifyContent="space-between"
+        >
+          {/* COLUMN 1: Brand & Newsletter */}
+          <Grid item xs={12} sm={6} lg={3}>
+            <Stack spacing={2}>
+              <Typography variant="h5" fontWeight={800} letterSpacing="-0.02em">
+                ShopSphere
+              </Typography>
+              <Typography variant="subtitle1" fontWeight={600} mt={1}>
+                Subscribe
+              </Typography>
+              <Typography variant="body2" color="#9ca3af" mb={1}>
+                Get 10% off your first order
+              </Typography>
+              <TextField
+                variant="outlined"
+                placeholder="Enter your email"
+                size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    color: "white",
+                    borderRadius: 2,
+                    border: "1px solid #4b5563",
+                    "& fieldset": { border: "none" },
+                    "&:hover": { border: "1px solid #6b7280" },
+                    "&.Mui-focused": {
+                      border: `1px solid ${theme.palette.primary.main}`,
+                    },
+                  },
+                  "& input::placeholder": { color: "#6b7280", opacity: 1 },
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <IconButton edge="end" sx={{ color: "white" }}>
+                      <SendRoundedIcon fontSize="small" />
+                    </IconButton>
+                  ),
+                }}
               />
-            </Box>
+            </Stack>
+          </Grid>
 
-            <Stack justifyContent={"space-around"}>
-              <Stack>
-                <img
-                  style={{ width: "100%", height: "100%", cursor: "pointer" }}
-                  src={googlePlayPng}
-                  alt="GooglePlay"
-                />
+          {/* COLUMN 2: Support */}
+          <Grid item xs={12} sm={6} lg={2}>
+            <Typography variant="h6" sx={titleStyles}>
+              Support
+            </Typography>
+            <Stack spacing={2}>
+              <Typography
+                sx={{ color: "#9ca3af", fontSize: "0.95rem", lineHeight: 1.6 }}
+              >
+                11th Main Street, Dhaka, <br />
+                DH 1515, California.
+              </Typography>
+              <Typography
+                component="a"
+                href="mailto:support@shopsphere.com"
+                sx={linkStyles}
+              >
+                support@shopsphere.com
+              </Typography>
+              <Typography
+                component="a"
+                href="tel:+88015888889999"
+                sx={linkStyles}
+              >
+                +88015-88888-9999
+              </Typography>
+            </Stack>
+          </Grid>
+
+          {/* COLUMN 3: Company (Replaced Account) */}
+          <Grid item xs={12} sm={6} lg={2}>
+            <Typography variant="h6" sx={titleStyles}>
+              Company
+            </Typography>
+            <Stack spacing={2}>
+              <Typography component={Link} to="/about" sx={linkStyles}>
+                About Us
+              </Typography>
+              <Typography component={Link} to="/careers" sx={linkStyles}>
+                Careers
+              </Typography>
+              <Typography component={Link} to="/stores" sx={linkStyles}>
+                Our Stores
+              </Typography>
+              <Typography component={Link} to="/press" sx={linkStyles}>
+                Press & Media
+              </Typography>
+            </Stack>
+          </Grid>
+
+          {/* COLUMN 4: Quick Links */}
+          <Grid item xs={12} sm={6} lg={2}>
+            <Typography variant="h6" sx={titleStyles}>
+              Quick Links
+            </Typography>
+            <Stack spacing={2}>
+              <Typography component={Link} to="/privacy" sx={linkStyles}>
+                Privacy Policy
+              </Typography>
+              <Typography component={Link} to="/terms" sx={linkStyles}>
+                Terms Of Use
+              </Typography>
+              <Typography component={Link} to="/faq" sx={linkStyles}>
+                FAQ
+              </Typography>
+              <Typography component={Link} to="/contact" sx={linkStyles}>
+                Contact
+              </Typography>
+            </Stack>
+          </Grid>
+
+          {/* COLUMN 5: App & Socials */}
+          <Grid item xs={12} sm={12} lg={3}>
+            <Typography variant="h6" sx={titleStyles}>
+              Download App
+            </Typography>
+            <Stack spacing={2}>
+              <Typography variant="caption" color="#9ca3af" fontWeight={600}>
+                Save ₹300 with App New User Only
+              </Typography>
+
+              <Stack direction="row" spacing={2} alignItems="center">
+                {/* QR Code */}
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    bgcolor: "white",
+                    p: 0.5,
+                    borderRadius: 1,
+                  }}
+                >
+                  <img
+                    src={QRCodePng}
+                    alt="QR Code"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
+                    }}
+                  />
+                </Box>
+
+                {/* App Buttons */}
+                <Stack spacing={1} width={120}>
+                  <motion.img
+                    whileHover={{ scale: 1.05 }}
+                    src={googlePlayPng}
+                    alt="Google Play"
+                    style={{ cursor: "pointer", width: "100%" }}
+                  />
+                  <motion.img
+                    whileHover={{ scale: 1.05 }}
+                    src={appStorePng}
+                    alt="App Store"
+                    style={{ cursor: "pointer", width: "100%" }}
+                  />
+                </Stack>
               </Stack>
-              <Stack>
-                <img
-                  style={{ width: "100%", height: "100%", cursor: "pointer" }}
-                  src={appStorePng}
-                  alt="AppStore"
-                />
+
+              {/* Social Icons */}
+              <Stack direction="row" spacing={2} mt={2}>
+                {[facebookPng, twitterPng, instagramPng, linkedinPng].map(
+                  (icon, idx) => (
+                    <motion.img
+                      key={idx}
+                      whileHover={{ scale: 1.2, y: -2 }}
+                      src={icon}
+                      alt="Social Icon"
+                      style={{ cursor: "pointer", width: 24, height: 24 }}
+                    />
+                  ),
+                )}
               </Stack>
             </Stack>
-          </Stack>
+          </Grid>
+        </Grid>
 
-          <Stack mt={0.6} flexDirection={"row"} columnGap={"2rem"}>
-            <MotionConfig whileHover={{ scale: 1.1 }} whileTap={{ scale: 1 }}>
-              <motion.img
-                style={{ cursor: "pointer" }}
-                src={facebookPng}
-                alt="Facebook"
-              />
-              <motion.img
-                style={{ cursor: "pointer" }}
-                src={twitterPng}
-                alt="Twitter"
-              />
-              <motion.img
-                style={{ cursor: "pointer" }}
-                src={instagramPng}
-                alt="Instagram"
-              />
-              <motion.img
-                style={{ cursor: "pointer" }}
-                src={linkedinPng}
-                alt="Linkedin"
-              />
-            </MotionConfig>
-          </Stack>
-        </Stack>
-      </Stack>
-
-      {/* lower */}
-      <Stack alignSelf={"center"}>
-        <Typography color={"GrayText"}>
-          &copy; Shopsphere {new Date().getFullYear()}. All right reserved
-        </Typography>
-      </Stack>
-    </Stack>
+        {/* BOTTOM COPYRIGHT */}
+        <Box mt={10}>
+          <Divider sx={{ borderColor: "#374151", mb: 3 }} />
+          <Typography variant="body2" color="#6b7280" textAlign="center">
+            &copy; {new Date().getFullYear()} ShopSphere. All rights reserved.
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
   );
-}
+};

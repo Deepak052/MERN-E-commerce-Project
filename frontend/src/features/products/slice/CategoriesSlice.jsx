@@ -128,10 +128,10 @@ const categorySlice = createSlice({
 export const { resetCategoryStatus, clearSelectedCategory } =
   categorySlice.actions;
 
-export const selectCategoryStatus = (state) => state.CategoriesSlice.status;
-export const selectCategories = (state) => state.CategoriesSlice.categories;
+export const selectCategoryStatus = (state) => state.categorySlice.status;
+export const selectCategories = (state) => state.categorySlice.categories;
 export const selectSelectedCategory = (state) =>
-  state.CategoriesSlice.selectedCategory;
-export const selectCategoryErrors = (state) => state.CategoriesSlice.errors;
+  state.categorySlice.selectedCategory;
+export const selectCategoryErrors = (state) => state.categorySlice.errors;
 
 export default categorySlice.reducer;

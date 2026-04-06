@@ -3,6 +3,7 @@ import {
   createOrder,
   getAllOrders,
   getOrderByUserId,
+  getOrderById, // 🚨 NEW
   updateOrderById,
   verifyAndCreateOrder,
 } from "../api/OrderApi";
@@ -17,7 +18,6 @@ const initialState = {
   successMessage: null,
 };
 
-// 🚨 FIX: Added rejectWithValue to all Thunks
 export const createOrderAsync = createAsyncThunk(
   "orders/createOrderAsync",
   async (order, { rejectWithValue }) => {
@@ -53,9 +53,21 @@ export const getAllOrdersAsync = createAsyncThunk(
 
 export const getOrderByUserIdAsync = createAsyncThunk(
   "orders/getOrderByUserIdAsync",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await getOrderByUserId();
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+// 🚨 NEW: Thunk to fetch a single order by ID
+export const getOrderByIdAsync = createAsyncThunk(
+  "orders/getOrderByIdAsync",
   async (id, { rejectWithValue }) => {
     try {
-      return await getOrderByUserId(); // ID is no longer passed to the API
+      return await getOrderById(id);
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -77,7 +89,8 @@ const orderSlice = createSlice({
   name: "orderSlice",
   initialState: initialState,
   reducers: {
-    resetCurrentOrder: (state) => {
+    clearCurrentOrder: (state) => {
+      // 🚨 FIX: Renamed to clearCurrentOrder to match UI pages
       state.currentOrder = null;
     },
     resetOrderUpdateStatus: (state) => {
@@ -99,7 +112,7 @@ const orderSlice = createSlice({
       })
       .addCase(createOrderAsync.rejected, (state, action) => {
         state.status = "rejected";
-        state.errors = action.payload || action.error; // 🚨 FIX
+        state.errors = action.payload || action.error;
       })
 
       .addCase(verifyAndCreateOrderAsync.pending, (state) => {
@@ -139,6 +152,19 @@ const orderSlice = createSlice({
         state.errors = action.payload || action.error;
       })
 
+      // 🚨 NEW: Handle Single Order Fetch
+      .addCase(getOrderByIdAsync.pending, (state) => {
+        state.orderFetchStatus = "pending";
+      })
+      .addCase(getOrderByIdAsync.fulfilled, (state, action) => {
+        state.orderFetchStatus = "fulfilled";
+        state.currentOrder = action.payload;
+      })
+      .addCase(getOrderByIdAsync.rejected, (state, action) => {
+        state.orderFetchStatus = "rejected";
+        state.errors = action.payload || action.error;
+      })
+
       .addCase(updateOrderByIdAsync.pending, (state) => {
         state.orderUpdateStatus = "pending";
       })
@@ -157,7 +183,7 @@ const orderSlice = createSlice({
 });
 
 export const {
-  resetCurrentOrder,
+  clearCurrentOrder,
   resetOrderUpdateStatus,
   resetOrderFetchStatus,
 } = orderSlice.actions;

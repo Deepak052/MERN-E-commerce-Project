@@ -43,16 +43,17 @@ const Login = () => {
   },[error])
 
   // handles login status and dispatches reset actions to relevant states in cleanup
-  useEffect(()=>{
-    if(status==='fullfilled' && loggedInUser?.isVerified===true){
-      toast.success(`Login successful`)
-      reset()
+  useEffect(() => {
+    // 🚨 FIX: Spelled 'fulfilled' correctly
+    if (status === "fulfilled" && loggedInUser?.isVerified === true) {
+      toast.success(`Login successful`);
+      reset();
     }
-    return ()=>{
-      dispatch(clearLoginError())
-      dispatch(resetLoginStatus())
-    }
-  },[status])
+    return () => {
+      dispatch(clearLoginError());
+      dispatch(resetLoginStatus());
+    };
+  }, [status, loggedInUser, dispatch, reset]);
 
   const handleLogin=(data)=>{
     const cred={...data}

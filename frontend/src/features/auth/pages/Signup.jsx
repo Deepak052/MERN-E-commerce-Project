@@ -58,7 +58,8 @@ export const Signup = () => {
   }, [error]);
 
   useEffect(() => {
-    if (status === "fullfilled") {
+    // 🚨 FIX: Spelled 'fulfilled' correctly
+    if (status === "fulfilled") {
       toast.success(
         "Welcome! Verify your email to start shopping on Shopsphere",
       );

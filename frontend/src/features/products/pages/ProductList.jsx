@@ -1,441 +1,694 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  FormGroup,
+  Box,
   Grid,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Select,
   Stack,
   Typography,
-  useMediaQuery,
+  Checkbox,
+  FormControlLabel,
+  Slider,
+  Button,
+  Drawer,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Pagination,
+  Breadcrumbs,
+  Divider,
   useTheme,
+  useMediaQuery,
+  CircularProgress,
+  Paper,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import ClearIcon from "@mui/icons-material/Clear";
-import { motion } from "framer-motion";
-import LottieComponent from "lottie-react";
-import { toast } from "react-toastify";
 
-// --- REDUX & FEATURE IMPORTS ---
+// Icons
+import FilterListRoundedIcon from "@mui/icons-material/FilterListRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+
+// Layout & Components
+import { Navbar } from "../../../layout/Navbar";
+import { Footer } from "../../../layout/Footer";
+import { ProductCard } from "../components/ProductCard";
+
+// Redux
 import {
   fetchProductsAsync,
-  resetProductFetchStatus,
-  selectProductFetchStatus,
-  selectProductIsFilterOpen,
-  selectProductTotalResults,
   selectProducts,
-  toggleFilters,
+  selectProductTotalResults,
+  selectProductFetchStatus,
 } from "../slice/ProductSlice";
-import { ProductCard } from "../components/ProductCard";
-import { selectBrands } from "../slice/BrandSlice";
 import { selectCategories } from "../slice/CategoriesSlice";
-import {
-  createWishlistItemAsync,
-  deleteWishlistItemByIdAsync,
-  resetWishlistItemAddStatus,
-  resetWishlistItemDeleteStatus,
-  selectWishlistItemAddStatus,
-  selectWishlistItemDeleteStatus,
-  selectWishlistItems,
-} from "../../wishlist/slice/WishlistSlice";
+import { selectBrands } from "../slice/BrandSlice";
 import { selectLoggedInUser } from "../../auth/slice/AuthSlice";
 import {
-  resetCartItemAddStatus,
-  selectCartItemAddStatus,
-} from "../../cart/slice/CartSlice";
+  selectWishlistItems,
+  createWishlistItemAsync,
+  deleteWishlistItemByIdAsync,
+} from "../../wishlist/slice/WishlistSlice";
+import { toast } from "react-toastify";
 
-// --- CONSTANTS & ASSETS ---
-import { ITEMS_PER_PAGE } from "../../../constants/constants";
-import { loadingAnimation } from "../../../assets";
+const ITEMS_PER_PAGE = 12;
 
-const Lottie = LottieComponent.default || LottieComponent;
-
-const sortOptions = [
-  { name: "Price: low to high", sort: "price", order: "asc" },
-  { name: "Price: high to low", sort: "price", order: "desc" },
-];
+const UI = {
+  primary: "#4f46e5",
+  textMain: "#111827",
+  textMuted: "#6b7280",
+  bgLight: "#f9fafb",
+  border: "1px solid #e5e7eb",
+};
 
 export const ProductList = () => {
-  const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState({});
-  const [page, setPage] = useState(1);
-  const [sort, setSort] = useState(null);
+  const dispatch = useDispatch();
   const theme = useTheme();
+  const navigate = useNavigate(); // <-- Fixed missing hook
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const is700 = useMediaQuery(theme.breakpoints.down(700));
-  const is600 = useMediaQuery(theme.breakpoints.down(600));
-  const is500 = useMediaQuery(theme.breakpoints.down(500));
-  const is488 = useMediaQuery(theme.breakpoints.down(488));
-
-  const brands = useSelector(selectProducts);
-  const categories = useSelector(selectProducts);
   const products = useSelector(selectProducts);
   const totalResults = useSelector(selectProductTotalResults);
-  const loggedInUser = useSelector(selectLoggedInUser);
+  const fetchStatus = useSelector(selectProductFetchStatus);
+  const categories = useSelector(selectCategories) || [];
+  const brands = useSelector(selectBrands) || [];
 
-  const productFetchStatus = useSelector(selectProductFetchStatus);
+  const user = useSelector(selectLoggedInUser);
+  const wishlistItems = useSelector(selectWishlistItems) || [];
 
-  const wishlistItems = useSelector(selectWishlistItems);
-  const wishlistItemAddStatus = useSelector(selectWishlistItemAddStatus);
-  const wishlistItemDeleteStatus = useSelector(selectWishlistItemDeleteStatus);
+  // Mobile Filter Drawer State
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  const cartItemAddStatus = useSelector(selectCartItemAddStatus);
-  const isProductFilterOpen = useSelector(selectProductIsFilterOpen);
+  // Local State for Price Slider
+  const [priceRange, setPriceRange] = useState([0, 100000]);
 
-  const dispatch = useDispatch();
+  // ─── 1. READ URL PARAMETERS ───
+  const currentCategory = searchParams.get("category");
+  const currentBrands = searchParams.get("brand")
+    ? searchParams.get("brand").split(",")
+    : [];
+  const currentSort = searchParams.get("sort") || "createdAt";
+  const currentOrder = searchParams.get("order") || "desc";
+  const currentPage = parseInt(searchParams.get("page")) || 1;
+  const currentSearch = searchParams.get("search") || "";
 
-  const handleBrandFilters = (e) => {
-    const filterSet = new Set(filters.brand);
-    if (e.target.checked) {
-      filterSet.add(e.target.value);
-    } else {
-      filterSet.delete(e.target.value);
-    }
-    setFilters({ ...filters, brand: Array.from(filterSet) });
-  };
-
-  const handleCategoryFilters = (e) => {
-    const filterSet = new Set(filters.category);
-    if (e.target.checked) {
-      filterSet.add(e.target.value);
-    } else {
-      filterSet.delete(e.target.value);
-    }
-    setFilters({ ...filters, category: Array.from(filterSet) });
-  };
-
-  const handleQuickCategoryFilter = (categoryId) => {
-    setFilters({ ...filters, category: [categoryId] });
-  };
-
+  // ─── 2. FETCH PRODUCTS ON URL CHANGE ───
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, []);
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
-  useEffect(() => {
-    setPage(1);
-  }, [totalResults]);
-
-  useEffect(() => {
-    const finalFilters = { ...filters };
-    finalFilters["pagination"] = { page: page, limit: ITEMS_PER_PAGE };
-    finalFilters["sort"] = sort;
-
-    if (searchParams.get("search")) {
-      finalFilters["search"] = searchParams.get("search");
-    }
-
-    if (!loggedInUser?.isAdmin) {
-      finalFilters["user"] = true;
-    }
-
-    dispatch(fetchProductsAsync(finalFilters));
-  }, [filters, page, sort, dispatch, loggedInUser, searchParams]);
-
-  const handleAddRemoveFromWishlist = (e, productId) => {
-    if (e.target.checked) {
-      dispatch(
-        createWishlistItemAsync({
-          user: loggedInUser?._id,
-          product: productId,
-        }),
-      );
-    } else {
-      const index = wishlistItems.findIndex(
-        (item) => item.product._id === productId,
-      );
-      dispatch(deleteWishlistItemByIdAsync(wishlistItems[index]._id));
-    }
-  };
-
-  useEffect(() => {
-    if (wishlistItemAddStatus === "fulfilled")
-      toast.success("Product added to wishlist");
-    else if (wishlistItemAddStatus === "rejected")
-      toast.error("Error adding product to wishlist");
-  }, [wishlistItemAddStatus]);
-
-  useEffect(() => {
-    if (wishlistItemDeleteStatus === "fulfilled")
-      toast.success("Product removed from wishlist");
-    else if (wishlistItemDeleteStatus === "rejected")
-      toast.error("Error removing product from wishlist");
-  }, [wishlistItemDeleteStatus]);
-
-  useEffect(() => {
-    if (cartItemAddStatus === "fulfilled")
-      toast.success("Product added to cart");
-    else if (cartItemAddStatus === "rejected")
-      toast.error("Error adding product to cart");
-  }, [cartItemAddStatus]);
-
-  useEffect(() => {
-    if (productFetchStatus === "rejected")
-      toast.error("Error fetching products");
-  }, [productFetchStatus]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(resetProductFetchStatus());
-      dispatch(resetWishlistItemAddStatus());
-      dispatch(resetWishlistItemDeleteStatus());
-      dispatch(resetCartItemAddStatus());
+    const filters = {
+      category: currentCategory ? [currentCategory] : [],
+      brand: currentBrands,
+      minPrice: searchParams.get("minPrice"),
+      maxPrice: searchParams.get("maxPrice"),
+      search: currentSearch,
+      sort: { sort: currentSort, order: currentOrder },
+      pagination: { page: currentPage, limit: ITEMS_PER_PAGE },
     };
-  }, [dispatch]);
 
-  const handleFilterClose = () => dispatch(toggleFilters());
+    dispatch(fetchProductsAsync(filters));
+  }, [searchParams, dispatch]);
+
+  // ─── 3. FILTER HANDLERS ───
+  const updateParams = (key, value) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set(key, value);
+    else params.delete(key);
+    params.set("page", 1);
+    setSearchParams(params);
+  };
+
+  const handleMultiSelectFilter = (key, value) => {
+    const current = searchParams.get(key)
+      ? searchParams.get(key).split(",")
+      : [];
+    let updated;
+    if (current.includes(value))
+      updated = current.filter((item) => item !== value);
+    else updated = [...current, value];
+
+    updateParams(key, updated.length > 0 ? updated.join(",") : null);
+  };
+
+  const handlePriceCommit = (event, newValue) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("minPrice", newValue[0]);
+    params.set("maxPrice", newValue[1]);
+    params.set("page", 1);
+    setSearchParams(params);
+  };
+
+  const handleSortChange = (e) => {
+    const [sort, order] = e.target.value.split("-");
+    const params = new URLSearchParams(searchParams);
+    params.set("sort", sort);
+    params.set("order", order);
+    setSearchParams(params);
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
+    setPriceRange([0, 100000]);
+  };
+
+  // ─── 4. WISHLIST HANDLER ───
+  const handleWishlistToggle = (e, productId, isWishlisted) => {
+    e.preventDefault();
+    if (!user)
+      return toast.error("Please login to add items to your wishlist.");
+    if (isWishlisted) {
+      const item = wishlistItems.find((w) => w.product._id === productId);
+      dispatch(deleteWishlistItemByIdAsync(item._id));
+    } else {
+      dispatch(createWishlistItemAsync({ user: user._id, product: productId }));
+    }
+  };
+
+  // ─── FILTER SIDEBAR COMPONENT ───
+  const FilterSidebar = (
+    <Box sx={{ p: { xs: 3, md: 0 } }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
+        <Typography variant="h6" fontWeight={800} color={UI.textMain}>
+          Filters
+        </Typography>
+        {searchParams.toString() && (
+          <Button
+            size="small"
+            color="error"
+            onClick={clearFilters}
+            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+          >
+            Clear All
+          </Button>
+        )}
+      </Stack>
+
+      <Divider sx={{ mb: 3, borderColor: "#e5e7eb" }} />
+
+      {/* CATEGORIES */}
+      <Box mb={4}>
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          mb={2}
+          color={UI.textMain}
+        >
+          Categories
+        </Typography>
+        <Stack spacing={0.5}>
+          <Box
+            onClick={() => updateParams("category", null)}
+            sx={{
+              cursor: "pointer",
+              px: 1.5,
+              py: 1,
+              borderRadius: 2,
+              bgcolor: !currentCategory ? `${UI.primary}15` : "transparent",
+              color: !currentCategory
+                ? theme.palette.primary.main
+                : UI.textMuted,
+              fontWeight: !currentCategory ? 700 : 500,
+              transition: "all 0.2s",
+              "&:hover": {
+                bgcolor: `${UI.primary}10`,
+                color: theme.palette.primary.main,
+              },
+            }}
+          >
+            All Categories
+          </Box>
+          {categories.map((c) => (
+            <Box
+              key={c._id}
+              onClick={() => updateParams("category", c._id)}
+              sx={{
+                cursor: "pointer",
+                px: 1.5,
+                py: 1,
+                borderRadius: 2,
+                bgcolor:
+                  currentCategory === c._id ? `${UI.primary}15` : "transparent",
+                color:
+                  currentCategory === c._id
+                    ? theme.palette.primary.main
+                    : UI.textMuted,
+                fontWeight: currentCategory === c._id ? 700 : 500,
+                transition: "all 0.2s",
+                "&:hover": {
+                  bgcolor: `${UI.primary}10`,
+                  color: theme.palette.primary.main,
+                },
+              }}
+            >
+              {c.name}
+            </Box>
+          ))}
+        </Stack>
+      </Box>
+
+      <Divider sx={{ mb: 3, borderColor: "#e5e7eb" }} />
+
+      {/* BRANDS */}
+      <Box mb={4}>
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          mb={2}
+          color={UI.textMain}
+        >
+          Brands
+        </Typography>
+        <Stack spacing={0.5}>
+          {brands.map((b) => (
+            <FormControlLabel
+              key={b._id}
+              sx={{
+                margin: 0,
+                "&:hover": { bgcolor: "#f3f4f6" },
+                borderRadius: 1.5,
+                pr: 1,
+              }}
+              control={
+                <Checkbox
+                  size="small"
+                  checked={currentBrands.includes(b._id)}
+                  onChange={() => handleMultiSelectFilter("brand", b._id)}
+                  sx={{
+                    color: "#d1d5db",
+                    "&.Mui-checked": { color: theme.palette.primary.main },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  variant="body2"
+                  color={UI.textMain}
+                  fontWeight={500}
+                >
+                  {b.name}
+                </Typography>
+              }
+            />
+          ))}
+        </Stack>
+      </Box>
+
+      <Divider sx={{ mb: 3, borderColor: "#e5e7eb" }} />
+
+      {/* PRICE RANGE */}
+      <Box mb={4}>
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          mb={3}
+          color={UI.textMain}
+        >
+          Price Range
+        </Typography>
+        <Box px={1}>
+          <Slider
+            value={priceRange}
+            onChange={(e, val) => setPriceRange(val)}
+            onChangeCommitted={handlePriceCommit}
+            valueLabelDisplay="auto"
+            min={0}
+            max={100000}
+            step={500}
+            sx={{
+              color: theme.palette.primary.main,
+              "& .MuiSlider-thumb": {
+                bgcolor: "#fff",
+                border: "2px solid currentColor",
+                "&:hover": { boxShadow: "0 0 0 8px rgba(79, 70, 229, 0.16)" },
+              },
+            }}
+          />
+        </Box>
+        <Stack direction="row" justifyContent="space-between" mt={1}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1,
+              border: "1px solid #e5e7eb",
+              borderRadius: 2,
+              minWidth: 70,
+              textAlign: "center",
+            }}
+          >
+            <Typography variant="body2" color={UI.textMain} fontWeight={600}>
+              ₹{priceRange[0]}
+            </Typography>
+          </Paper>
+          <Typography color="text.secondary" sx={{ mt: 1 }}>
+            -
+          </Typography>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1,
+              border: "1px solid #e5e7eb",
+              borderRadius: 2,
+              minWidth: 70,
+              textAlign: "center",
+            }}
+          >
+            <Typography variant="body2" color={UI.textMain} fontWeight={600}>
+              ₹{priceRange[1]}
+            </Typography>
+          </Paper>
+        </Stack>
+      </Box>
+    </Box>
+  );
 
   return (
     <>
-      {productFetchStatus === "pending" ? (
-        <Stack
-          width={is500 ? "35vh" : "25rem"}
-          height={"calc(100vh - 4rem)"}
-          justifyContent={"center"}
-          margin={"auto"}
+      <Navbar />
+      <Box sx={{ bgcolor: UI.bgLight, minHeight: "100vh", pb: 10 }}>
+        {/* PAGE HEADER */}
+        <Box
+          sx={{
+            bgcolor: "#ffffff",
+            borderBottom: "1px solid #e5e7eb",
+            py: { xs: 4, md: 5 },
+            mb: 5,
+            boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.05)",
+          }}
         >
-          <Lottie animationData={loadingAnimation} />
-        </Stack>
-      ) : (
-        <>
-          <motion.div
-            style={{
-              position: "fixed",
-              backgroundColor: "white",
-              height: "100vh",
-              padding: "1rem",
-              overflowY: "scroll",
-              width: is500 ? "100vw" : "30rem",
-              zIndex: 500,
-            }}
-            variants={{ show: { left: 0 }, hide: { left: -500 } }}
-            initial={"hide"}
-            transition={{ ease: "easeInOut", duration: 0.7, type: "spring" }}
-            animate={isProductFilterOpen === true ? "show" : "hide"}
-          >
-            <Stack
-              mb={"5rem"}
-              sx={{ scrollBehavior: "smooth", overflowY: "scroll" }}
-            >
-              <Typography variant="h4">Quick Categories</Typography>
-
-              <IconButton
-                onClick={handleFilterClose}
-                style={{ position: "absolute", top: 15, right: 15 }}
+          <Grid container maxWidth="xl" mx="auto" px={{ xs: 2, md: 5 }}>
+            <Grid item xs={12}>
+              <Breadcrumbs
+                separator={<NavigateNextIcon fontSize="small" />}
+                sx={{ mb: 2 }}
               >
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <ClearIcon fontSize="medium" />
-                </motion.div>
-              </IconButton>
-
-              <Stack rowGap={2} mt={4}>
-                <Typography
-                  sx={{
-                    cursor: "pointer",
-                    fontWeight: !filters.category?.length ? 700 : 400,
-                    color: !filters.category?.length
-                      ? "primary.main"
-                      : "text.primary",
-                    "&:hover": { color: "primary.main" },
+                <Link
+                  to="/"
+                  style={{
+                    textDecoration: "none",
+                    color: UI.textMuted,
+                    fontWeight: 500,
                   }}
-                  variant="body2"
-                  onClick={() => setFilters({ ...filters, category: [] })}
                 >
-                  All Products
+                  Home
+                </Link>
+                <Typography color="text.primary" fontWeight={600}>
+                  Products
                 </Typography>
-
-                {categories?.slice(0, 6).map((category) => (
-                  <Typography
-                    key={category._id}
-                    sx={{
-                      cursor: "pointer",
-                      fontWeight: filters.category?.includes(category._id)
-                        ? 700
-                        : 400,
-                      color: filters.category?.includes(category._id)
-                        ? "primary.main"
-                        : "text.primary",
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        color: "primary.main",
-                        transform: "translateX(4px)",
-                      },
-                    }}
-                    variant="body2"
-                    onClick={() => handleQuickCategoryFilter(category._id)}
-                  >
-                    {category.name}
-                  </Typography>
-                ))}
-              </Stack>
-
-              <Stack mt={2}>
-                <Accordion>
-                  <AccordionSummary expandIcon={<AddIcon />}>
-                    <Typography>Brands</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ p: 0 }}>
-                    <FormGroup onChange={handleBrandFilters}>
-                      {brands?.map((brand) => (
-                        <motion.div
-                          key={brand._id}
-                          style={{ width: "fit-content" }}
-                          whileHover={{ x: 5 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FormControlLabel
-                            sx={{ ml: 1 }}
-                            control={
-                              <Checkbox
-                                checked={
-                                  filters.brand?.includes(brand._id) || false
-                                }
-                                value={brand._id}
-                              />
-                            }
-                            label={brand.name}
-                          />
-                        </motion.div>
-                      ))}
-                    </FormGroup>
-                  </AccordionDetails>
-                </Accordion>
-              </Stack>
-
-              <Stack mt={2}>
-                <Accordion>
-                  <AccordionSummary expandIcon={<AddIcon />}>
-                    <Typography>All Categories</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ p: 0 }}>
-                    <FormGroup onChange={handleCategoryFilters}>
-                      {categories?.map((category) => (
-                        <motion.div
-                          key={category._id}
-                          style={{ width: "fit-content" }}
-                          whileHover={{ x: 5 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FormControlLabel
-                            sx={{ ml: 1 }}
-                            control={
-                              <Checkbox
-                                checked={
-                                  filters.category?.includes(category._id) ||
-                                  false
-                                }
-                                value={category._id}
-                              />
-                            }
-                            label={category.name}
-                          />
-                        </motion.div>
-                      ))}
-                    </FormGroup>
-                  </AccordionDetails>
-                </Accordion>
-              </Stack>
-            </Stack>
-          </motion.div>
-
-          <Stack mb={"3rem"}>
-            <Stack rowGap={5} mt={is600 ? 2 : 4}>
-              {/* sort options */}
-              <Stack
-                flexDirection={"row"}
-                mr={"2rem"}
-                justifyContent={"flex-end"}
-                alignItems={"center"}
-                columnGap={5}
+              </Breadcrumbs>
+              <Typography
+                variant="h3"
+                fontSize={{ xs: "1.75rem", md: "2.25rem" }}
+                fontWeight={800}
+                color={UI.textMain}
               >
-                <Stack alignSelf={"flex-end"} width={"12rem"}>
-                  <FormControl fullWidth>
-                    <InputLabel id="sort-dropdown">Sort</InputLabel>
-                    <Select
-                      variant="standard"
-                      labelId="sort-dropdown"
-                      label="Sort"
-                      onChange={(e) => setSort(e.target.value)}
-                      value={sort || ""}
-                    >
-                      <MenuItem value={null}>Reset</MenuItem>
-                      {sortOptions.map((option) => (
-                        <MenuItem key={option.name} value={option}>
-                          {option.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Stack>
-              </Stack>
+                {currentSearch
+                  ? `Search Results for "${currentSearch}"`
+                  : "Shop All Products"}
+              </Typography>
+              <Typography variant="body1" color={UI.textMuted} mt={1}>
+                Showing {products.length} of {totalResults} results
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
 
-              {/* product grid */}
-              <Grid
-                gap={is700 ? 1 : 2}
-                container
-                justifyContent={"center"}
-                alignContent={"center"}
-              >
-                {products.map((product) => {
-                  const discountedPrice =
-                    product.basePrice *
-                    (1 - (product.discountPercentage || 0) / 100);
-                  return (
-                    <ProductCard
-                      key={product._id}
-                      id={product._id}
-                      title={product.title}
-                      thumbnail={product.thumbnail}
-                      brand={product.brand?.name || "Generic"}
-                      price={discountedPrice}
-                      originalPrice={product.basePrice}
-                      discount={product.discountPercentage}
-                      handleAddRemoveFromWishlist={handleAddRemoveFromWishlist}
-                    />
-                  );
-                })}
-              </Grid>
+        <Grid
+          container
+          maxWidth="xl"
+          mx="auto"
+          px={{ xs: 2, md: 5 }}
+          spacing={4}
+        >
+          {/* DESKTOP SIDEBAR */}
+          {!isMobile && (
+            <Grid item md={3} lg={2.5}>
+              <Box sx={{ position: "sticky", top: 24, pr: 2 }}>
+                {FilterSidebar}
+              </Box>
+            </Grid>
+          )}
 
-              {/* pagination */}
-              <Stack
-                alignSelf={is488 ? "center" : "flex-end"}
-                mr={is488 ? 0 : 5}
-                rowGap={2}
-                p={is488 ? 1 : 0}
-              >
-                <Pagination
-                  size={is488 ? "medium" : "large"}
-                  page={page}
-                  onChange={(e, page) => setPage(page)}
-                  count={Math.ceil(totalResults / ITEMS_PER_PAGE)}
+          {/* MAIN PRODUCT AREA */}
+          <Grid item xs={12} md={9} lg={9.5}>
+            {/* TOP BAR (Mobile Filter Btn & Sort) */}
+            <Stack
+              direction="row"
+              justifyContent={isMobile ? "space-between" : "flex-end"}
+              alignItems="center"
+              mb={4}
+            >
+              {isMobile && (
+                <Button
                   variant="outlined"
-                  shape="rounded"
-                />
-                <Typography textAlign={"center"}>
-                  Showing {(page - 1) * ITEMS_PER_PAGE + 1} to{" "}
-                  {page * ITEMS_PER_PAGE > totalResults
-                    ? totalResults
-                    : page * ITEMS_PER_PAGE}{" "}
-                  of {totalResults} results
-                </Typography>
-              </Stack>
+                  startIcon={<FilterListRoundedIcon />}
+                  onClick={() => setMobileFiltersOpen(true)}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    textTransform: "none",
+                    borderColor: "#d1d5db",
+                    color: UI.textMain,
+                  }}
+                >
+                  Filters
+                </Button>
+              )}
+
+              <FormControl
+                size="small"
+                sx={{
+                  minWidth: 200,
+                  bgcolor: "white",
+                  "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                }}
+              >
+                <InputLabel sx={{ fontWeight: 500 }}>Sort By</InputLabel>
+                <Select
+                  value={`${currentSort}-${currentOrder}`}
+                  label="Sort By"
+                  onChange={handleSortChange}
+                  sx={{ fontWeight: 500, color: UI.textMain }}
+                >
+                  <MenuItem value="createdAt-desc">Newest First</MenuItem>
+                  <MenuItem value="basePrice-asc">Price: Low to High</MenuItem>
+                  <MenuItem value="basePrice-desc">Price: High to Low</MenuItem>
+                  <MenuItem value="soldCount-desc">Best Selling</MenuItem>
+                </Select>
+              </FormControl>
             </Stack>
-          </Stack>
-        </>
-      )}
+
+            {/* PRODUCTS GRID / EMPTY STATE */}
+            {fetchStatus === "pending" ? (
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                minHeight="50vh"
+              >
+                <CircularProgress size={48} thickness={4} />
+              </Box>
+            ) : products.length === 0 ? (
+              /* 🚨 PERFECTED ALIGNED EMPTY STATE */
+              <Paper
+                elevation={0}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: "50vh",
+                  textAlign: "center",
+                  p: { xs: 4, md: 8 },
+                  borderRadius: 4,
+                  border: UI.border,
+                  bgcolor: "white",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
+                }}
+              >
+                <Box
+                  sx={{
+                    bgcolor: `${UI.primary}10`,
+                    p: 3,
+                    borderRadius: "50%",
+                    mb: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {currentSearch ? (
+                    <SearchOffRoundedIcon
+                      sx={{ fontSize: 64, color: theme.palette.primary.main }}
+                    />
+                  ) : (
+                    <Inventory2OutlinedIcon
+                      sx={{ fontSize: 64, color: theme.palette.primary.main }}
+                    />
+                  )}
+                </Box>
+                <Typography
+                  variant="h5"
+                  fontWeight={800}
+                  color={UI.textMain}
+                  mb={1}
+                >
+                  {currentSearch
+                    ? `No results found for "${currentSearch}"`
+                    : "No products matched your criteria."}
+                </Typography>
+                <Typography color={UI.textMuted} mb={4} maxWidth="sm">
+                  {currentSearch
+                    ? "We couldn't find anything matching your search. Try checking for spelling errors or using more general terms."
+                    : "Try adjusting your filters, selecting a different category, or removing pricing constraints."}
+                </Typography>
+                <Button
+                  variant="contained"
+                  disableElevation
+                  onClick={() => {
+                    clearFilters();
+                    navigate("/products"); // Safe now that useNavigate is imported
+                  }}
+                  sx={{
+                    px: 4,
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    textTransform: "none",
+                    fontSize: "1rem",
+                  }}
+                >
+                  Clear All Filters & Search
+                </Button>
+              </Paper>
+            ) : (
+              <>
+                <Grid container spacing={3}>
+                  {products.map((product) => {
+                    const isWishlisted = wishlistItems.some(
+                      (w) => w.product._id === product._id,
+                    );
+                    const finalPrice =
+                      product.basePrice *
+                      (1 - (product.discountPercentage || 0) / 100);
+
+                    return (
+                      <Grid item xs={6} sm={6} md={4} lg={3} key={product._id}>
+                        <ProductCard
+                          id={product._id}
+                          title={product.title}
+                          thumbnail={product.thumbnail}
+                          brand={product.brand?.name}
+                          price={finalPrice}
+                          originalPrice={product.basePrice}
+                          discount={product.discountPercentage}
+                          hasVariants={product.hasVariants}
+                          stock={product.stockQuantity}
+                          isAdminCard={false}
+                          isWishlisted={isWishlisted}
+                          handleAddRemoveFromWishlist={(e) =>
+                            handleWishlistToggle(e, product._id, isWishlisted)
+                          }
+                        />
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+
+                {/* PAGINATION */}
+                {totalResults > ITEMS_PER_PAGE && (
+                  <Box display="flex" justifyContent="center" mt={8}>
+                    <Pagination
+                      count={Math.ceil(totalResults / ITEMS_PER_PAGE)}
+                      page={currentPage}
+                      onChange={(e, page) => updateParams("page", page)}
+                      color="primary"
+                      size="large"
+                      sx={{
+                        "& .MuiPaginationItem-root": {
+                          borderRadius: 2,
+                          fontWeight: 600,
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
+              </>
+            )}
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* MOBILE FILTER DRAWER */}
+      <Drawer
+        anchor="bottom"
+        open={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        PaperProps={{
+          sx: {
+            height: "85vh",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+          },
+        }}
+      >
+        <Box
+          p={2}
+          display="flex"
+          justifyContent="flex-end"
+          borderBottom="1px solid #e5e7eb"
+          position="sticky"
+          top={0}
+          bgcolor="white"
+          zIndex={1}
+        >
+          <IconButton
+            onClick={() => setMobileFiltersOpen(false)}
+            sx={{ bgcolor: "#f3f4f6" }}
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+        </Box>
+        <Box sx={{ overflowY: "auto", pb: 12 }}>{FilterSidebar}</Box>
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            p: 2,
+            bgcolor: "white",
+            borderTop: "1px solid #e5e7eb",
+            boxShadow: "0 -4px 6px -1px rgb(0 0 0 / 0.05)",
+          }}
+        >
+          <Button
+            fullWidth
+            variant="contained"
+            disableElevation
+            size="large"
+            onClick={() => setMobileFiltersOpen(false)}
+            sx={{
+              bgcolor: UI.primary,
+              borderRadius: 2,
+              fontWeight: 700,
+              py: 1.5,
+            }}
+          >
+            Show Results
+          </Button>
+        </Box>
+      </Drawer>
+
+      <Footer />
     </>
   );
 };

@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import {
   Button,
-  Chip,
   Paper,
   Stack,
   Typography,
@@ -17,7 +16,6 @@ import { motion, AnimatePresence } from "framer-motion";
 // Icons
 import RemoveShoppingCartOutlinedIcon from "@mui/icons-material/RemoveShoppingCartOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 
 // Redux & Components
 import {
@@ -25,7 +23,7 @@ import {
   selectCartItemRemoveStatus,
   selectCartItems,
 } from "../slice/CartSlice";
-import { CartItem } from "./CartItem";
+import { CartItem } from "../components/CartItem"; // Make sure path is correct
 import { SHIPPING, TAXES } from "../../../constants/constants";
 import { toast } from "react-toastify";
 
@@ -40,7 +38,6 @@ const UI = {
   radius: 3,
 };
 
-// Helper function to calculate final price
 const getDiscountedPrice = (basePrice, discountPercentage) => {
   return basePrice * (1 - (discountPercentage || 0) / 100);
 };
@@ -49,12 +46,10 @@ export const Cart = ({ checkout }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const is900 = useMediaQuery(theme.breakpoints.down(900));
-  const is480 = useMediaQuery(theme.breakpoints.down(480));
 
   const items = useSelector(selectCartItems) || [];
   const cartItemRemoveStatus = useSelector(selectCartItemRemoveStatus);
 
-  // ✅ FIX: Calculate subtotal using the discounted price formula
   const subtotal = items.reduce((acc, item) => {
     const finalPrice = getDiscountedPrice(
       item.product.basePrice,
@@ -64,13 +59,12 @@ export const Cart = ({ checkout }) => {
   }, 0);
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-  const grandTotal = subtotal + SHIPPING + TAXES;
+  const grandTotal = subtotal > 0 ? subtotal + SHIPPING + TAXES : 0;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  // Handle Remove Notifications
   useEffect(() => {
     if (cartItemRemoveStatus === "fulfilled") {
       toast.success("Product removed from cart");
@@ -85,9 +79,6 @@ export const Cart = ({ checkout }) => {
     };
   }, [dispatch]);
 
-  // ==========================================
-  // 🚫 EMPTY STATE UI
-  // ==========================================
   if (items.length === 0) {
     return (
       <motion.div
@@ -151,9 +142,6 @@ export const Cart = ({ checkout }) => {
     );
   }
 
-  // ==========================================
-  // 🛒 ACTIVE CART UI
-  // ==========================================
   return (
     <Stack justifyContent="flex-start" alignItems="center" mb={10}>
       <Stack
@@ -162,7 +150,6 @@ export const Cart = ({ checkout }) => {
         px={checkout ? 0 : { xs: 2, md: 0 }}
         spacing={4}
       >
-        {/* Header (Only show if not in checkout flow) */}
         {!checkout && (
           <Box>
             <Typography variant="h4" fontWeight={800} color={UI.textMain}>
@@ -183,7 +170,6 @@ export const Cart = ({ checkout }) => {
           <Stack spacing={2} sx={{ flexGrow: 1, width: "100%" }}>
             <AnimatePresence>
               {items.map((item) => {
-                // ✅ FIX: Calculate individual item price for the CartItem component
                 const finalPrice = getDiscountedPrice(
                   item.product.basePrice,
                   item.product.discountPercentage,
@@ -200,14 +186,15 @@ export const Cart = ({ checkout }) => {
                   >
                     <CartItem
                       id={item._id}
+                      productId={item.product._id}
                       title={item.product.title}
                       brand={item.product.brand?.name}
                       category={item.product.category?.name}
-                      price={finalPrice} // Passed the corrected price here!
+                      price={finalPrice}
                       quantity={item.quantity}
                       thumbnail={item.product.thumbnail}
                       stockQuantity={item.product.stockQuantity}
-                      productId={item.product._id}
+                      selectedAttributes={item.selectedAttributes} // 🚨 Passes the variant data down
                     />
                   </motion.div>
                 );
@@ -231,25 +218,22 @@ export const Cart = ({ checkout }) => {
             <Typography variant="h6" fontWeight={700} mb={3}>
               Order Summary
             </Typography>
-
             <Stack spacing={2}>
               <Stack direction="row" justifyContent="space-between">
                 <Typography color={UI.textSecondary}>
                   Subtotal ({totalItems} items)
                 </Typography>
-                <Typography fontWeight={600}>${subtotal.toFixed(2)}</Typography>
+                <Typography fontWeight={600}>₹{subtotal.toFixed(0)}</Typography>
               </Stack>
-
               <Stack direction="row" justifyContent="space-between">
                 <Typography color={UI.textSecondary}>
                   Shipping estimate
                 </Typography>
-                <Typography fontWeight={600}>${SHIPPING.toFixed(2)}</Typography>
+                <Typography fontWeight={600}>₹{SHIPPING.toFixed(0)}</Typography>
               </Stack>
-
               <Stack direction="row" justifyContent="space-between">
                 <Typography color={UI.textSecondary}>Tax estimate</Typography>
-                <Typography fontWeight={600}>${TAXES.toFixed(2)}</Typography>
+                <Typography fontWeight={600}>₹{TAXES.toFixed(0)}</Typography>
               </Stack>
             </Stack>
 
@@ -265,17 +249,16 @@ export const Cart = ({ checkout }) => {
                 Total
               </Typography>
               <Typography variant="h5" fontWeight={800} color={UI.primary}>
-                ${grandTotal.toFixed(2)}
+                ₹{grandTotal.toFixed(0)}
               </Typography>
             </Stack>
 
-            {/* CTAs (Only show if not already on Checkout page) */}
             {!checkout && (
               <Stack spacing={2}>
                 <Button
-                  variant="contained"
                   component={Link}
                   to="/checkout"
+                  variant="contained"
                   fullWidth
                   size="large"
                   sx={{
@@ -290,11 +273,10 @@ export const Cart = ({ checkout }) => {
                 >
                   Proceed to Checkout
                 </Button>
-
                 <Button
-                  variant="text"
                   component={Link}
                   to="/"
+                  variant="text"
                   fullWidth
                   startIcon={<ArrowBackRoundedIcon />}
                   sx={{
@@ -307,8 +289,6 @@ export const Cart = ({ checkout }) => {
                 </Button>
               </Stack>
             )}
-
-            
           </Paper>
         </Stack>
       </Stack>

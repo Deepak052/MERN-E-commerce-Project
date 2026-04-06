@@ -66,9 +66,10 @@ export const Navbar = ({ isProductList = false }) => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchTerm.trim())}`);
+      // 🚨 FIX: Navigate to /products, not /
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
     } else {
-      navigate(`/`);
+      navigate(`/products`);
     }
   };
 

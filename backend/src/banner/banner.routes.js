@@ -1,26 +1,34 @@
 const express = require("express");
 const router = express.Router();
 const bannerController = require("./banner.controller");
+const { upload } = require("../../config/cloudinary"); // 🚨 NEW
 
-// Import security middlewares
 const { verifyToken } = require("../../middlewares/verifyToken");
 const { requireAdmin } = require("../../middlewares/requireAdmin");
 
-// ==========================================
-// 🟢 PUBLIC ROUTES (Customer Storefront)
-// ==========================================
+// 🚨 Setup Multer to look for the "image" field
+const bannerUpload = upload.single("image");
+
 router.get("/", bannerController.getAllPublic);
-
-// ==========================================
-// 🔴 ADMIN ROUTES (Protected)
-// ==========================================
-// Static route first
 router.get("/admin", verifyToken, requireAdmin, bannerController.getAllAdmin);
-
-// Parameterized routes
-router.post("/", verifyToken, requireAdmin, bannerController.create);
 router.get("/:id", verifyToken, requireAdmin, bannerController.getById);
-router.patch("/:id", verifyToken, requireAdmin, bannerController.updateById);
+
+// 🚨 Inject Multer into the create and update routes
+router.post(
+  "/",
+  verifyToken,
+  requireAdmin,
+  bannerUpload,
+  bannerController.create,
+);
+router.patch(
+  "/:id",
+  verifyToken,
+  requireAdmin,
+  bannerUpload,
+  bannerController.updateById,
+);
+
 router.delete("/:id", verifyToken, requireAdmin, bannerController.deleteById);
 
 module.exports = router;

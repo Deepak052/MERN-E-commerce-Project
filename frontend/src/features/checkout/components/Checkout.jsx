@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
@@ -16,7 +16,6 @@ import {
   Box,
   useTheme,
   useMediaQuery,
-  Divider,
   MenuItem,
 } from "@mui/material";
 import { LoadingButton } from "@mui/lab";
@@ -31,11 +30,13 @@ import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalance
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 
-// 🚨 FIX: Corrected Cross-Feature Imports
+// Redux & API
 import {
   addAddressAsync,
-  selectAddressStatus,
   selectAddresses,
+  selectAddressAddStatus, // 🚨 FIX: Listen to the ADD status
+  resetAddressAddStatus, // 🚨 FIX: Reset the ADD status
+  fetchAddressByUserIdAsync, // 🚨 FIX: Import to refetch
 } from "../../profile/slice/AddressSlice";
 import { selectLoggedInUser } from "../../auth/slice/AuthSlice";
 import {
@@ -51,6 +52,9 @@ import {
 import { createRazorpayOrderSession } from "../../order/api/OrderApi";
 import { Cart } from "../../cart/components/Cart";
 import { SHIPPING, TAXES } from "../../../constants/constants";
+
+// JSON IMPORT
+import statesData from "../../../config/states-with-districts.json";
 
 const UI = {
   bg: "#f4f5f7",
@@ -81,11 +85,11 @@ export const Checkout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Setup React Hook Form with mode="onTouched" for real-time validation UI
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
     mode: "onTouched",
@@ -93,7 +97,10 @@ export const Checkout = () => {
 
   const addresses = useSelector(selectAddresses) || [];
   const loggedInUser = useSelector(selectLoggedInUser);
-  const addressStatus = useSelector(selectAddressStatus);
+
+  // 🚨 FIX: Using the correct Add Status
+  const addressAddStatus = useSelector(selectAddressAddStatus);
+
   const cartItems = useSelector(selectCartItems) || [];
   const orderStatus = useSelector(selectOrderStatus);
   const currentOrder = useSelector(selectCurrentOrder);
@@ -106,6 +113,14 @@ export const Checkout = () => {
     addresses.length === 0,
   );
 
+  // Dynamic States & Districts Logic
+  const selectedState = watch("state");
+  const availableDistricts = useMemo(() => {
+    return (
+      statesData.find((s) => s.statename === selectedState)?.districts || []
+    );
+  }, [selectedState]);
+
   // Calculate Totals dynamically
   const orderSubtotal = cartItems.reduce((acc, item) => {
     const itemPrice =
@@ -117,36 +132,46 @@ export const Checkout = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    dispatch(resetAddressAddStatus());
+  }, [dispatch]);
 
-  // Handle successful address addition
+  // 🚨 FIX: Handle Address Submission Success
   useEffect(() => {
-    if (addressStatus === "fulfilled") {
+    if (addressAddStatus === "fulfilled" && isAddingAddress) {
       reset();
       setIsAddingAddress(false);
-      // Auto-select the newly added address
-      if (addresses.length > 0) {
-        setSelectedAddress(addresses[addresses.length - 1]);
+      toast.success("Address added successfully!");
+
+      // Reset the status so the form can be opened again later without instantly closing
+      dispatch(resetAddressAddStatus());
+
+      // Dispatch refetch to sync with backend as requested
+      if (loggedInUser?._id) {
+        dispatch(fetchAddressByUserIdAsync(loggedInUser._id));
       }
-    } else if (addressStatus === "rejected") {
+    } else if (addressAddStatus === "rejected" && isAddingAddress) {
       toast.error("Error adding your address. Please check your details.");
+      dispatch(resetAddressAddStatus());
     }
-  }, [addressStatus, reset, addresses]);
+  }, [addressAddStatus, isAddingAddress, reset, dispatch, loggedInUser]);
+
+  // Auto-select the newest address whenever the array length changes
+  useEffect(() => {
+    if (addresses.length > 0) {
+      setSelectedAddress(addresses[addresses.length - 1]);
+    }
+  }, [addresses.length]);
 
   // Triggers redirect when an order is successfully created
   useEffect(() => {
     if (currentOrder && currentOrder?._id) {
-      // 🚨 FIX: We don't need to pass the userId anymore because the backend reads the secure token!
       dispatch(resetCartByUserIdAsync());
       navigate(`/order-success/${currentOrder?._id}`);
     }
   }, [currentOrder, dispatch, navigate]);
 
   const handleAddAddress = (data) => {
-    if (!data.type || !data.street || !data.phoneNumber) {
-      return toast.error("Please fill in all required fields.");
-    }
-    const address = { ...data, user: loggedInUser._id };
+    const address = { ...data, country: "India", user: loggedInUser._id };
     dispatch(addAddressAsync(address));
   };
 
@@ -364,7 +389,7 @@ export const Checkout = () => {
                   </Grid>
                 )}
 
-                {/* Add New Address Form (Animated & Validated) */}
+                {/* Add New Address Form */}
                 <AnimatePresence>
                   {isAddingAddress && (
                     <motion.div
@@ -397,21 +422,14 @@ export const Checkout = () => {
                               <TextField
                                 select
                                 fullWidth
-                                label="Address Type"
+                                
                                 defaultValue=""
                                 {...register("type", {
                                   required: "Address type is required",
                                 })}
                                 error={!!errors.type}
                                 helperText={errors.type?.message}
-                                SelectProps={{
-                                  displayEmpty: true,
-                                }}
-                                sx={{
-                                  "& .MuiSelect-select": {
-                                    padding: "14px",
-                                  },
-                                }}
+                                SelectProps={{ displayEmpty: true }}
                               >
                                 <MenuItem value="" disabled>
                                   Select Address Type
@@ -453,46 +471,81 @@ export const Checkout = () => {
                                 helperText={errors.street?.message}
                               />
                             </Grid>
+
+                            {/* CASCADING STATE DROPDOWN */}
                             <Grid item xs={12} sm={4}>
                               <TextField
+                                select
                                 fullWidth
-                                label="City"
-                                {...register("city", {
-                                  required: "City is required",
-                                  pattern: {
-                                    value: /^[A-Za-z\s]+$/,
-                                    message: "Only alphabets are allowed",
-                                  },
-                                })}
-                                error={!!errors.city}
-                                helperText={errors.city?.message}
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={4}>
-                              <TextField
-                                fullWidth
-                                label="State"
+                                
+                                defaultValue=""
                                 {...register("state", {
                                   required: "State is required",
-                                  pattern: {
-                                    value: /^[A-Za-z\s]+$/,
-                                    message: "Only alphabets are allowed",
-                                  },
                                 })}
                                 error={!!errors.state}
                                 helperText={errors.state?.message}
-                              />
+                                SelectProps={{ displayEmpty: true }}
+                              >
+                                <MenuItem value="" disabled>
+                                  Select State
+                                </MenuItem>
+                                {statesData
+                                  .sort((a, b) =>
+                                    a.statename.localeCompare(b.statename),
+                                  )
+                                  .map((s) => (
+                                    <MenuItem
+                                      key={s.statename}
+                                      value={s.statename}
+                                    >
+                                      {s.statename}
+                                    </MenuItem>
+                                  ))}
+                              </TextField>
                             </Grid>
+
+                            {/* CASCADING CITY/DISTRICT DROPDOWN */}
+                            <Grid item xs={12} sm={4}>
+                              <TextField
+                                select
+                                fullWidth
+                                
+                                defaultValue=""
+                                {...register("city", {
+                                  required: "City is required",
+                                })}
+                                error={!!errors.city}
+                                helperText={errors.city?.message}
+                                disabled={!selectedState}
+                                SelectProps={{ displayEmpty: true }}
+                              >
+                                <MenuItem value="" disabled>
+                                  Select City
+                                </MenuItem>
+                                {availableDistricts.map((district) => (
+                                  <MenuItem key={district} value={district}>
+                                    {district}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            </Grid>
+
                             <Grid item xs={12} sm={4}>
                               <TextField
                                 fullWidth
                                 type="text"
                                 label="Postal Code (PIN)"
+                                onInput={(e) => {
+                                  e.target.value = e.target.value.replace(
+                                    /[^0-9]/g,
+                                    "",
+                                  );
+                                }}
                                 {...register("postalCode", {
                                   required: "Postal code is required",
                                   pattern: {
                                     value: /^[1-9][0-9]{5}$/,
-                                    message: "Enter a valid 6-digit PIN code",
+                                    message: "Enter a valid 6-digit PIN",
                                   },
                                 })}
                                 error={!!errors.postalCode}
@@ -503,11 +556,9 @@ export const Checkout = () => {
                               <TextField
                                 fullWidth
                                 label="Country"
-                                {...register("country", {
-                                  required: "Country is required",
-                                })}
-                                error={!!errors.country}
-                                helperText={errors.country?.message}
+                                value="India"
+                                disabled
+                                sx={{ bgcolor: "#e5e7eb" }}
                               />
                             </Grid>
                           </Grid>
@@ -531,7 +582,7 @@ export const Checkout = () => {
                               </Button>
                             )}
                             <LoadingButton
-                              loading={addressStatus === "pending"}
+                              loading={addressAddStatus === "pending"} // 🚨 FIX: Listen to add status
                               type="submit"
                               variant="contained"
                               sx={{
@@ -723,7 +774,6 @@ export const Checkout = () => {
                   Order Summary
                 </Typography>
 
-                {/* The existing Cart component configured for checkout layout */}
                 <Box sx={{ mb: 3 }}>
                   <Cart checkout={true} />
                 </Box>
@@ -772,7 +822,6 @@ export const Checkout = () => {
                     </Typography>
                   )}
 
-                {/* Trust Badges */}
                 <Stack
                   direction="row"
                   alignItems="center"

@@ -5,6 +5,15 @@ const productController = require("./product.controller");
 // Import security middlewares
 const { verifyToken } = require("../../middlewares/verifyToken");
 const { requireAdmin } = require("../../middlewares/requireAdmin");
+const { upload } = require("../../config/cloudinary");
+
+const productUploads = upload.fields([
+  { name: "thumbnail", maxCount: 1 },
+  { name: "image0", maxCount: 1 },
+  { name: "image1", maxCount: 1 },
+  { name: "image2", maxCount: 1 },
+  { name: "image3", maxCount: 1 },
+]);
 
 // ==========================================
 // 🟢 PUBLIC ROUTES (Customer Storefront)
@@ -30,8 +39,8 @@ router.get("/recommended", verifyToken, productController.getRecommendations);
 router.get("/admin", verifyToken, requireAdmin, productController.getAllAdmin);
 
 // Create, Update, and Delete products
-router.post("/", verifyToken, requireAdmin, productController.create);
-router.patch("/:id", verifyToken, requireAdmin, productController.updateById);
+router.post("/", verifyToken, requireAdmin,productUploads, productController.create);
+router.patch("/:id", verifyToken, requireAdmin,productUploads, productController.updateById);
 router.patch(
   "/undelete/:id",
   verifyToken,

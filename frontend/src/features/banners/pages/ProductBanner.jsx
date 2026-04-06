@@ -2,26 +2,27 @@ import React from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import { Box } from "@mui/material";
+import { Link } from "react-router-dom"; // 🚨 NEW: Import Link
 
 // Swiper styles
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
-export const ProductBanner = ({ images = [] }) => {
-  if (!images || images.length === 0) {
+export const ProductBanner = ({ banners = [] }) => {
+  if (!banners || banners.length === 0) {
     return (
       <Box
         sx={{
           width: "100%",
-          height: "300px",
+          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background: "#f5f5f5",
         }}
       >
-        No Images Available
+        No Banners Available
       </Box>
     );
   }
@@ -31,7 +32,7 @@ export const ProductBanner = ({ images = [] }) => {
       <Swiper
         modules={[Autoplay, Pagination, Navigation]}
         autoplay={{
-          delay: 3000,
+          delay: 4000,
           disableOnInteraction: false,
         }}
         loop={true}
@@ -39,19 +40,27 @@ export const ProductBanner = ({ images = [] }) => {
         navigation={true}
         style={{ width: "100%", height: "100%" }}
       >
-        {images.map((image, index) => (
-          <SwiperSlide key={index}>
+        {banners.map((banner, index) => (
+          <SwiperSlide key={banner._id || index}>
+            {/* 🚨 NEW: Make the whole slide a clickable link */}
             <Box
-              component="img"
-              src={image}
-              alt={`Banner-${index}`}
-              sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: "contain",
-                display: "block",
-              }}
-            />
+              component={Link}
+              to={banner.redirectUrl || "/"}
+              sx={{ display: "block", width: "100%", height: "100%" }}
+            >
+              <Box
+                component="img"
+                src={banner.image}
+                alt={banner.title || `Banner-${index}`}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover", // 'cover' removes empty side-gaps on ultra-wide screens
+                  objectPosition: "center",
+                  display: "block",
+                }}
+              />
+            </Box>
           </SwiperSlide>
         ))}
       </Swiper>

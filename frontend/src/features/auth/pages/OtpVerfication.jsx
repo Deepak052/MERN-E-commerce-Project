@@ -89,7 +89,8 @@ export const OtpVerfication = () => {
   }, [otpVerificationError, dispatch]);
 
   useEffect(() => {
-    if (otpVerificationStatus === "fullfilled") {
+    // 🚨 FIX: Spelled 'fulfilled' correctly (Update it for both OTP & Resend)
+    if (otpVerificationStatus === "fulfilled") {
       toast.success("Email verified! We are happy to have you here");
       dispatch(resetResendOtpStatus());
     }
@@ -121,7 +122,7 @@ export const OtpVerfication = () => {
           Verify Your Email Address
         </Typography>
 
-        {resendOtpStatus === "fullfilled" ? (
+        {resendOtpStatus === "fulfilled" ? (
           <Stack
             width={"100%"}
             rowGap={"1rem"}

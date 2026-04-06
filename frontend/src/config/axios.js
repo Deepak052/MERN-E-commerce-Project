@@ -8,7 +8,7 @@ export const axiosi = axios.create({
 });
 
 export const uploadImageToCloudinary = async (file) => {
-  const formData = new FormData();
+  const formData = new FormData();ch
   formData.append("image", file); 
 
   try {
