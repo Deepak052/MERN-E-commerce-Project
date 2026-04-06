@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import {
   Box,
   Paper,
@@ -41,13 +41,11 @@ import {
   updateCategoryByIdAsync,
   getCategoryByIdAsync,
   selectCategoryStatus,
-  selectCategoryErrors,
   selectSelectedCategory,
   selectCategories,
   resetCategoryStatus,
   clearSelectedCategory,
 } from "../slice/CategoriesSlice";
-import { uploadImageToCloudinary } from "../../../config/axios";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -69,7 +67,7 @@ const T = {
   radius: "14px",
 };
 
-// ─── Empty State – shown when no categories exist and user is on list page ───
+// ─── Empty State ──────────────────────────────────────────────────────────────
 export const NoCategoriesEmptyState = ({ onCreateClick }) => (
   <Box
     sx={{
@@ -143,15 +141,17 @@ export const AddEditCategoryView = () => {
   const allCategories = useSelector(selectCategories) || [];
 
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [categoryLevel, setCategoryLevel] = useState("root");
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // 🚨 File & Preview States
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // Root-only categories eligible as parents
   const availableParents = allCategories.filter(
     (cat) => !cat.parentCategory && cat._id !== id && cat.isActive !== false,
   );
-
   const hasRootCategories = availableParents.length > 0;
 
   const {
@@ -159,6 +159,7 @@ export const AddEditCategoryView = () => {
     handleSubmit,
     watch,
     setValue,
+    control, // 👈 Needed for Switch Controller
     reset,
     formState: { errors },
   } = useForm({
@@ -168,12 +169,10 @@ export const AddEditCategoryView = () => {
       name: "",
       slug: "",
       description: "",
-      thumbnail: "",
     },
   });
 
   const categoryName = watch("name");
-  const thumbnailUrl = watch("thumbnail");
   const watchedParent = watch("parentCategory");
 
   // ── Init ──────────────────────────────────────────────────────────────────
@@ -187,10 +186,11 @@ export const AddEditCategoryView = () => {
         name: "",
         slug: "",
         description: "",
-        thumbnail: "",
         parentCategory: "",
         isActive: true,
       });
+      setPreviewUrl(null);
+      setSelectedFile(null);
     }
   }, [id, isEditMode, dispatch, reset]);
 
@@ -203,10 +203,14 @@ export const AddEditCategoryView = () => {
         name: selectedCategory.name,
         slug: selectedCategory.slug,
         description: selectedCategory.description || "",
-        thumbnail: selectedCategory.thumbnail || "",
         parentCategory: selectedCategory.parentCategory?._id || "",
         isActive: selectedCategory.isActive,
       });
+
+      // Set image preview if one exists
+      if (selectedCategory.thumbnail) {
+        setPreviewUrl(selectedCategory.thumbnail);
+      }
     }
   }, [selectedCategory, isEditMode, reset, id]);
 
@@ -229,37 +233,47 @@ export const AddEditCategoryView = () => {
       setTimeout(() => navigate("/categories"), 1200);
     }
     if (isSubmitted && status === "rejected") {
-      toast.error("Something went wrong. Please try again.");
+      toast.error(
+        "Something went wrong. Please try again or check for duplicate slugs.",
+      );
       setIsSubmitted(false);
     }
   }, [status, isSubmitted, isEditMode, navigate]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  const onSubmit = (data) => {
-    setIsSubmitted(true);
-    const finalParent =
-      categoryLevel === "root" ? null : data.parentCategory || null;
-    const payload = { ...data, parentCategory: finalParent };
-    if (isEditMode) {
-      dispatch(updateCategoryByIdAsync({ _id: id, ...payload }));
-    } else {
-      dispatch(addCategoryAsync(payload));
-    }
-  };
-
-  // ── Image upload ──────────────────────────────────────────────────────────
-  const handleImageUpload = async (e) => {
+  // ── Image Selection (Local) ───────────────────────────────────────────────
+  const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    try {
-      setIsUploading(true);
-      const url = await uploadImageToCloudinary(file);
-      setValue("thumbnail", url, { shouldValidate: true, shouldDirty: true });
-      toast.success("Thumbnail uploaded!");
-    } catch {
-      toast.error("Upload failed. Please try again.");
-    } finally {
-      setIsUploading(false);
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  // ── Submit via FormData ───────────────────────────────────────────────────
+  const onSubmit = (data) => {
+    setIsSubmitted(true);
+    const formData = new FormData();
+
+    // Append text fields
+    formData.append("name", data.name);
+    formData.append("slug", data.slug);
+    formData.append("description", data.description || "");
+    formData.append("isActive", data.isActive);
+
+    // Handle parent logic
+    const finalParent =
+      categoryLevel === "root" ? "" : data.parentCategory || "";
+    formData.append("parentCategory", finalParent);
+
+    // Append file if selected
+    if (selectedFile) {
+      formData.append("thumbnail", selectedFile);
+    }
+
+    if (isEditMode) {
+      formData.append("_id", id);
+      dispatch(updateCategoryByIdAsync(formData));
+    } else {
+      dispatch(addCategoryAsync(formData));
     }
   };
 
@@ -292,7 +306,7 @@ export const AddEditCategoryView = () => {
           sx={{ mb: 1.5 }}
         >
           <Link
-            to="/admin/dashboard"
+            to="/"
             style={{ textDecoration: "none", color: T.textMuted, fontSize: 13 }}
           >
             Dashboard
@@ -472,7 +486,7 @@ export const AddEditCategoryView = () => {
                         You need at least one{" "}
                         <strong>top-level category</strong> before creating a
                         subcategory. Create a top-level category first, then
-                        come back to add subcategories.
+                        come back.
                       </Alert>
                     </motion.div>
                   )}
@@ -672,7 +686,7 @@ export const AddEditCategoryView = () => {
                   fullWidth
                   size="large"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={isPending || isUploading || submitSuccess}
+                  disabled={isPending || submitSuccess}
                   startIcon={
                     submitSuccess ? (
                       <CheckCircleRoundedIcon />
@@ -721,6 +735,7 @@ export const AddEditCategoryView = () => {
 
                 <Divider sx={{ my: 2.5 }} />
 
+                {/* 🚨 UPDATED Active Switch with Controller */}
                 <Box
                   sx={{
                     display: "flex",
@@ -740,10 +755,16 @@ export const AddEditCategoryView = () => {
                       Visible to customers
                     </Typography>
                   </Box>
-                  <Switch
-                    color="success"
-                    defaultChecked
-                    {...register("isActive")}
+                  <Controller
+                    name="isActive"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        color="success"
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                      />
+                    )}
                   />
                 </Box>
 
@@ -785,7 +806,7 @@ export const AddEditCategoryView = () => {
                 </Box>
               </Paper>
 
-              {/* ── Thumbnail Card ── */}
+              {/* ── Thumbnail Card (Local Upload) ── */}
               <Paper
                 elevation={0}
                 sx={{
@@ -812,19 +833,18 @@ export const AddEditCategoryView = () => {
                   Recommended: 400×400 px, PNG or JPG
                 </Typography>
 
-                <input type="hidden" {...register("thumbnail")} />
                 <input
                   accept="image/*"
                   style={{ display: "none" }}
-                  id="cloudinary-upload-button"
+                  id="local-upload-button"
                   type="file"
-                  onChange={handleImageUpload}
+                  onChange={handleImageSelect}
                 />
-                <label htmlFor="cloudinary-upload-button">
+                <label htmlFor="local-upload-button">
                   <Box
                     sx={{
                       height: 180,
-                      border: thumbnailUrl
+                      border: previewUrl
                         ? "2px solid #e5e7eb"
                         : "2px dashed #d1d5db",
                       borderRadius: "12px",
@@ -832,7 +852,7 @@ export const AddEditCategoryView = () => {
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      bgcolor: thumbnailUrl ? "#fff" : "#f9fafb",
+                      bgcolor: previewUrl ? "#fff" : "#f9fafb",
                       cursor: "pointer",
                       overflow: "hidden",
                       transition: "border-color 0.2s, background 0.2s",
@@ -842,21 +862,10 @@ export const AddEditCategoryView = () => {
                       },
                     }}
                   >
-                    {isUploading ? (
-                      <Stack alignItems="center" spacing={1}>
-                        <CircularProgress size={26} sx={{ color: T.primary }} />
-                        <Typography
-                          variant="caption"
-                          color={T.textMuted}
-                          fontWeight={600}
-                        >
-                          Uploading…
-                        </Typography>
-                      </Stack>
-                    ) : thumbnailUrl ? (
+                    {previewUrl ? (
                       <img
-                        src={thumbnailUrl}
-                        alt="Thumbnail preview"
+                        src={previewUrl}
+                        alt="Preview"
                         style={{
                           maxWidth: "90%",
                           maxHeight: "90%",
@@ -888,19 +897,19 @@ export const AddEditCategoryView = () => {
                         >
                           Click to upload
                         </Typography>
-                        <Typography variant="caption" color={T.textMuted}>
-                          PNG, JPG up to 5MB
-                        </Typography>
                       </Stack>
                     )}
                   </Box>
                 </label>
 
-                {thumbnailUrl && (
+                {previewUrl && (
                   <Button
                     size="small"
                     color="error"
-                    onClick={() => setValue("thumbnail", "")}
+                    onClick={() => {
+                      setPreviewUrl(null);
+                      setSelectedFile(null);
+                    }}
                     sx={{
                       mt: 1.5,
                       textTransform: "none",

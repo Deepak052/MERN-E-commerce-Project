@@ -30,6 +30,7 @@ import BrandManagerView from "./features/brands/pages/BrandManagerView"
 import { AddEditCategoryView } from "./features/categories/pages/AddEditCategoryView";
 import CategoryManagerView from "./features/categories/pages/CategoryManagerView";
 import AdminManagerView from "./features/customers/pages/AdminManagerView"
+import { AddEditBrandView } from "./features/brands/pages/AddEditBrandView";
 function App() {
   const isAuthChecked = useSelector(selectIsAuthChecked);
   useAuthCheck();
@@ -46,7 +47,6 @@ function App() {
           path="/reset-password/:userId/:token"
           element={<ResetPassword />}
         />
-        
 
         {/* PROTECTED ADMIN ROUTES */}
         <Route
@@ -160,6 +160,27 @@ function App() {
             <Protected>
               <AdminLayout activeTab="Brands">
                 <BrandManagerView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/brands/add"
+          element={
+            <Protected>
+              <AdminLayout activeTab="Banners">
+                <AddEditBrandView />
+              </AdminLayout>
+            </Protected>
+          }
+        />
+        <Route
+          path="/brands/edit/:id"
+          element={
+            <Protected>
+              <AdminLayout activeTab="Banners">
+                <AddEditBrandView />
               </AdminLayout>
             </Protected>
           }

@@ -23,6 +23,9 @@ const productSchema = new Schema(
     isFlashSale: { type: Boolean, default: false },
     soldCount: { type: Number, default: 0 },
 
+    isBundle: { type: Boolean, default: false },
+    bundleItems: [{ type: Schema.Types.ObjectId, ref: "Product" }],
+
     // Media
     thumbnail: { type: String, required: true },
     images: { type: [String], default: [] },

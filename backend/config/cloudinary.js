@@ -17,9 +17,9 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "ecommerce_admin", // Creates a folder in your Cloudinary account
+    folder: "Shopsphere_admin", 
     allowedFormats: ["jpeg", "png", "jpg", "webp"],
-    transformation: [{ width: 800, height: 800, crop: "limit" }], // Optional: auto-resize huge images
+    transformation: [{ width: 800, height: 800, crop: "limit" }], 
   },
 });
 

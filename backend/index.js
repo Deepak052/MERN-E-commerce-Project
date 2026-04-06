@@ -29,6 +29,7 @@ const userRoutes = require("./src/users/user.routes");
 const cartRoutes = require("./src/cart/cart.routes");
 const addressRoutes = require("./src/address/address.routes");
 const wishlistRoutes = require("./src/wishlist/wishlist.routes");
+const recentlyViewedRoutes = require("./src/recently-viewed/recentlyViewed.routes");
 
 const adminRoutes = require("./src/admins/admin.routes");
 const dashboardRoutes = require("./src/dashboard/dashboard.routes");
@@ -101,6 +102,7 @@ server.use(`${API_PREFIX}/users`, verifyToken, userRoutes);
 server.use(`${API_PREFIX}/cart`, verifyToken, cartRoutes);
 server.use(`${API_PREFIX}/address`, verifyToken, addressRoutes);
 server.use(`${API_PREFIX}/wishlist`, verifyToken, wishlistRoutes);
+server.use(`${API_PREFIX}/recently-viewed`, verifyToken, recentlyViewedRoutes);
 
 // Protected Admin Routes
 server.use(`${API_PREFIX}/admin/users`, verifyToken, adminRoutes);

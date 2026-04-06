@@ -21,9 +21,10 @@ export const getCategoryById = async (id) => {
 };
 
 // Create a new category
-export const addCategory = async (data) => {
+export const addCategory = async (categoryFormData) => {
   try {
-    const res = await axiosi.post("/categories", data);
+    // 🚨 FIX: Passes FormData directly
+    const res = await axiosi.post("/categories", categoryFormData);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to create category" };
@@ -31,11 +32,11 @@ export const addCategory = async (data) => {
 };
 
 // Update an existing category
-export const updateCategoryById = async (update) => {
+export const updateCategoryById = async (categoryFormData) => {
   try {
-    // We separate the ID from the rest of the payload for the URL
-    const { _id, ...rest } = update;
-    const res = await axiosi.patch(`/categories/${_id}`, rest);
+    // 🚨 FIX: Extract ID from FormData
+    const id = categoryFormData.get("_id");
+    const res = await axiosi.patch(`/categories/${id}`, categoryFormData);
     return res.data;
   } catch (error) {
     throw error.response?.data || { message: "Failed to update category" };

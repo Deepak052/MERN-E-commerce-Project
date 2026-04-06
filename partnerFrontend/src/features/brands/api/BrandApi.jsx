@@ -31,22 +31,25 @@ export const getBrandById = async (id) => {
 };
 
 // ✅ Create
-export const addBrand = async (data) => {
+export const addBrand = async (brandFormData) => {
   try {
-    const res = await axiosi.post("/brands", data);
+    // Axios automatically sets Content-Type to multipart/form-data when passing FormData!
+    const res = await axiosi.post("/brands", brandFormData);
     return res.data;
   } catch (error) {
-    throw error?.response?.data || error.message;
+    throw error.response?.data || error;
   }
 };
 
 // ✅ Update
-export const updateBrandById = async (update) => {
+export const updateBrandById = async (brandFormData) => {
   try {
-    const res = await axiosi.patch(`/brands/${update._id}`, update);
+    // Extract the ID from the FormData to build the URL
+    const id = brandFormData.get("_id");
+    const res = await axiosi.patch(`/brands/${id}`, brandFormData);
     return res.data;
   } catch (error) {
-    throw error?.response?.data || error.message;
+    throw error.response?.data || error;
   }
 };
 

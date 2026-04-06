@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { useForm, useFieldArray } from "react-hook-form";
+// 🚨 FIX: Imported Controller
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import {
   Box,
   Paper,
@@ -38,10 +39,12 @@ import {
   addProductAsync,
   resetProductAddStatus,
   selectProductAddStatus,
+  selectProducts, // 🚨 FIX: Import the products selector
+  fetchProductsAsync, // 🚨 FIX: Import the thunk to fetch products
 } from "../slice/ProductSlice";
 import { selectBrands } from "../../brands/slice/BrandSlice";
 import { selectCategories } from "../../categories/slice/CategoriesSlice";
-import { uploadImageToCloudinary } from "../../../config/axios"; 
+import { uploadImageToCloudinary } from "../../../config/axios";
 
 const UI = {
   bg: "#f4f5f7",
@@ -62,6 +65,7 @@ export const AddProduct = () => {
   const brands = useSelector(selectBrands);
   const categories = useSelector(selectCategories);
   const productAddStatus = useSelector(selectProductAddStatus);
+  const products = useSelector(selectProducts); // 🚨 FIX: Get products from store
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isUploadingThumb, setIsUploadingThumb] = useState(false);
@@ -79,11 +83,16 @@ export const AddProduct = () => {
     defaultValues: {
       isActive: true,
       isDealOfTheDay: false,
+      isFlashSale: false,
+      isBundle: false,
+      bundleItems: [],
       discountPercentage: 0,
       stockQuantity: 0,
       attributes: [], // Initializes dynamic attributes array
     },
   });
+
+  const isBundle = watch("isBundle");
 
   // Allows dynamic adding/removing of attributes (Color, Size, etc.)
   const {
@@ -98,6 +107,13 @@ export const AddProduct = () => {
   const formValues = watch();
   const title = formValues.title;
   const thumbnailUrl = formValues.thumbnail;
+
+  // 🚨 FIX: Fetch products on mount if they aren't loaded yet (so the bundle dropdown works)
+  useEffect(() => {
+    if (!products || products.length === 0) {
+      dispatch(fetchProductsAsync());
+    }
+  }, [dispatch, products]);
 
   // Auto-generate Slug from Title
   useEffect(() => {
@@ -168,6 +184,9 @@ export const AddProduct = () => {
       },
       isActive: data.isActive,
       isDealOfTheDay: data.isDealOfTheDay,
+      isFlashSale: data.isFlashSale,
+      isBundle: data.isBundle,
+      bundleItems: data.isBundle ? data.bundleItems : [],
     };
 
     dispatch(addProductAsync(newProduct));
@@ -211,12 +230,13 @@ export const AddProduct = () => {
     <Box sx={{ width: "100%", pb: 10, bgcolor: UI.bg, minHeight: "100vh" }}>
       {/* HEADER */}
       <Box sx={{ px: { xs: 3, md: 5 }, pt: 4, pb: 3 }}>
+        {/* ... Breadcrumbs and Title (No Changes needed here) ... */}
         <Breadcrumbs
           separator={<NavigateNextIcon fontSize="small" />}
           sx={{ mb: 2 }}
         >
           <Link
-            to="/admin/dashboard"
+            to="/"
             style={{
               textDecoration: "none",
               color: UI.textMuted,
@@ -292,7 +312,6 @@ export const AddProduct = () => {
                     helperText={errors.title?.message}
                     InputLabelProps={{ shrink: true }}
                   />
-
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
                     <TextField
                       fullWidth
@@ -320,7 +339,6 @@ export const AddProduct = () => {
                       sx={{ input: { textTransform: "uppercase" } }}
                     />
                   </Stack>
-
                   <TextField
                     fullWidth
                     label="Description"
@@ -543,6 +561,7 @@ export const AddProduct = () => {
                 </Button>
                 <Divider sx={{ my: 3 }} />
 
+                {/* 🚨 FIX: Added Controllers to all Switches */}
                 <Box
                   mb={3}
                   sx={{
@@ -557,10 +576,16 @@ export const AddProduct = () => {
                 >
                   <FormControlLabel
                     control={
-                      <Switch
-                        color="success"
-                        defaultChecked
-                        {...register("isActive")}
+                      <Controller
+                        name="isActive"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="success"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
                       />
                     }
                     label={
@@ -570,11 +595,19 @@ export const AddProduct = () => {
                     }
                     sx={{ m: 0 }}
                   />
-
-                  {/* 🚨 NEW: Deal of the Day Switch */}
                   <FormControlLabel
                     control={
-                      <Switch color="warning" {...register("isDealOfTheDay")} />
+                      <Controller
+                        name="isDealOfTheDay"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="warning"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
                     }
                     label={
                       <Typography variant="body2" fontWeight={700}>
@@ -583,6 +616,71 @@ export const AddProduct = () => {
                     }
                     sx={{ m: 0 }}
                   />
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="isFlashSale"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="error"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={700}>
+                        Promote in Flash Sale
+                      </Typography>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Controller
+                        name="isBundle"
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            color="info"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
+                        )}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontWeight={700}>
+                        This is a Combo/Bundle
+                      </Typography>
+                    }
+                    sx={{ m: 0 }}
+                  />
+
+                  {/* Conditional Bundle Items Selector */}
+                  {isBundle && (
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                      <InputLabel>Select Products for Bundle</InputLabel>
+                      <Select
+                        multiple
+                        {...register("bundleItems")}
+                        defaultValue={[]}
+                      >
+                        {/* 🚨 FIX: Safe mapping over products */}
+                        {products && products.length > 0 ? (
+                          products.map((p) => (
+                            <MenuItem key={p._id} value={p._id}>
+                              {p.title}
+                            </MenuItem>
+                          ))
+                        ) : (
+                          <MenuItem disabled>No products available</MenuItem>
+                        )}
+                      </Select>
+                    </FormControl>
+                  )}
                 </Box>
 
                 <Stack spacing={3}>

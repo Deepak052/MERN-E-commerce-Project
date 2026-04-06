@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const categoryController = require("./category.controller");
 
-// Import security middlewares
+// Import security & upload middlewares
 const { verifyToken } = require("../../middlewares/verifyToken");
 const { requireAdmin } = require("../../middlewares/requireAdmin");
+const { upload } = require("../../config/cloudinary"); // 🚨 NEW: Import Multer
 
 // ==========================================
 // 🟢 PUBLIC ROUTES (Customer Storefront)
@@ -25,10 +26,22 @@ router.get(
   categoryController.getRootsAdmin,
 );
 
-// Parameterized routes
-router.post("/", verifyToken, requireAdmin, categoryController.create);
+// Parameterized routes (🚨 FIX: Added upload.single)
+router.post(
+  "/",
+  verifyToken,
+  requireAdmin,
+  upload.single("thumbnail"),
+  categoryController.create,
+);
 router.get("/admin/:id", verifyToken, requireAdmin, categoryController.getById);
-router.patch("/:id", verifyToken, requireAdmin, categoryController.updateById);
+router.patch(
+  "/:id",
+  verifyToken,
+  requireAdmin,
+  upload.single("thumbnail"),
+  categoryController.updateById,
+);
 router.delete("/:id", verifyToken, requireAdmin, categoryController.deleteById);
 
 module.exports = router;

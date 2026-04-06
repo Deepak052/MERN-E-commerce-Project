@@ -18,6 +18,7 @@ router.get("/explore", productController.getExploreMore);
 router.get("/best-sellers", productController.getBestSellers);
 router.get("/budget-picks", productController.getBudgetPicks);
 router.get("/flash-sale", productController.getFlashSale);
+router.get("/combo-offers", productController.getComboOffers);
 
 // Protect the recommendations route so only logged-in users can hit it
 router.get("/recommended", verifyToken, productController.getRecommendations);

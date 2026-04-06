@@ -45,13 +45,26 @@ exports.getRootsPublic = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { parentCategory } = req.body;
+    // 🚨 FIX: Handle FormData converting null/empty to strings
+    if (
+      !req.body.parentCategory ||
+      req.body.parentCategory === "null" ||
+      req.body.parentCategory === ""
+    ) {
+      req.body.parentCategory = null;
+    }
+
+    // 🚨 FIX: Catch the uploaded image
+    if (req.file) {
+      req.body.thumbnail = req.file.path;
+    }
+
+    const parentCategory = req.body.parentCategory;
 
     if (parentCategory) {
       const parent = await Category.findById(parentCategory);
-      if (!parent) {
+      if (!parent)
         return res.status(400).json({ message: "Parent category not found" });
-      }
       if (parent.parentCategory) {
         return res
           .status(400)
@@ -70,12 +83,10 @@ exports.create = async (req, res) => {
     );
     res.status(201).json(populated);
   } catch (error) {
-    console.error("Create Category Error:", error);
-    if (error.code === 11000) {
+    if (error.code === 11000)
       return res
         .status(400)
         .json({ message: "A category with this slug already exists" });
-    }
     res
       .status(500)
       .json({ message: "Error creating category", error: error.message });
@@ -137,7 +148,21 @@ exports.getById = async (req, res) => {
 
 exports.updateById = async (req, res) => {
   try {
-    const { parentCategory, _id } = req.body;
+    // 🚨 FIX: Handle FormData converting null/empty to strings
+    if (
+      !req.body.parentCategory ||
+      req.body.parentCategory === "null" ||
+      req.body.parentCategory === ""
+    ) {
+      req.body.parentCategory = null;
+    }
+
+    // 🚨 FIX: Catch the uploaded image
+    if (req.file) {
+      req.body.thumbnail = req.file.path;
+    }
+
+    const { parentCategory } = req.body;
     const categoryId = req.params.id;
 
     if (parentCategory && parentCategory.toString() === categoryId) {
@@ -168,12 +193,10 @@ exports.updateById = async (req, res) => {
 
     res.status(200).json(updated);
   } catch (error) {
-    console.error("Update Category Error:", error);
-    if (error.code === 11000) {
+    if (error.code === 11000)
       return res
         .status(400)
         .json({ message: "A category with this slug already exists" });
-    }
     res
       .status(500)
       .json({ message: "Error updating category", error: error.message });

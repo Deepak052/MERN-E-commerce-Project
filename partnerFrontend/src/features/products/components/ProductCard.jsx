@@ -105,6 +105,10 @@ export const ProductCard = ({
             {title}
           </Typography>
 
+          <Typography variant="body2" fontWeight={600} color="success.main">
+            {product.soldCount || 0} Sold
+          </Typography>
+
           {/* PRICE */}
           <Stack
             direction="row"

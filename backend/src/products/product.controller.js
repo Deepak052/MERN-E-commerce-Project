@@ -381,3 +381,18 @@ exports.getRecommendations = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch recommendations" });
   }
 };
+
+// GET /products/combo-offers
+exports.getComboOffers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    // Fetch bundles and populate the data of the products inside them
+    const bundles = await Product.find({ isActive: true, isBundle: true })
+      .populate("bundleItems")
+      .limit(limit);
+      
+    res.status(200).json(bundles);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching combo offers" });
+  }
+};
