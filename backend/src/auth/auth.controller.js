@@ -59,12 +59,25 @@ exports.login = async (req, res) => {
     const secureInfo = sanitizeUser(existingUser);
     const token = generateToken({ ...secureInfo, role: "Customer" });
 
+    // 🚨 DEBUG LOGS: Check what Render is actually evaluating
+    const isProd = process.env.PRODUCTION === "true";
+    console.log(
+      "🛠️ DEBUG: process.env.PRODUCTION is literally:",
+      process.env.PRODUCTION,
+    );
+    console.log(
+      "🛠️ DEBUG: Cookie Secure is:",
+      isProd,
+      "| SameSite is:",
+      isProd ? "None" : "Lax",
+    );
+
     res.cookie("userToken", token, {
-      sameSite: process.env.PRODUCTION === "true" ? "None" : "Lax",
+      sameSite: isProd ? "None" : "Lax",
       maxAge:
         parseInt(process.env.COOKIE_EXPIRATION_DAYS || 7) * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.PRODUCTION === "true",
+      secure: isProd, // Must be true for Cross-Origin (Netlify to Render)
     });
 
     console.log(
