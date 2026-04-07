@@ -44,7 +44,7 @@ connectToDB();
 // 3. GLOBAL MIDDLEWARES (Optimized)
 // ==========================================
 
-
+server.set("trust proxy", 1);
 const allowedOrigins = [process.env.CUSTOMER_ORIGIN, process.env.ADMIN_ORIGIN];
 
 server.use(
