@@ -53,6 +53,35 @@ server.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.error(
+          `🚨 CORS BLOCKED: Origin ${origin} is not in allowedOrigins list!`,
+        );
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    exposedHeaders: ["X-Total-Count"],
+    methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
+  }),
+);
+
+// 🚨 ADD THIS NEW DEBUG MIDDLEWARE HERE
+server.use((req, res, next) => {
+  console.log(`\n🚦 [TRAFFIC COP] ${req.method} ${req.url}`);
+  console.log(`🌍 Origin Header:`, req.headers.origin || "NO ORIGIN HEADER");
+  console.log(
+    `🍪 Cookies Received:`,
+    req.headers.cookie || "NO COOKIES SENT BY BROWSER",
+  );
+  next();
+});
+
+server.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
         callback(new Error('Not allowed by CORS'));
       }
     },

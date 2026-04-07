@@ -77,13 +77,14 @@ exports.login = async (req, res) => {
       maxAge:
         parseInt(process.env.COOKIE_EXPIRATION_DAYS || 7) * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: isProd, // Must be true for Cross-Origin (Netlify to Render)
+      secure: isProd, // Must be true for Cross-Origin
     });
 
-    console.log(
-      "🟢 [USER LOGIN] Success. Cookie 'userToken' set for:",
-      existingUser.email,
-    );
+    console.log("🟢 [USER LOGIN] Success for:", existingUser.email);
+
+    // 🚨 ADD THIS TO SEE THE EXACT HEADER GOING TO THE BROWSER
+    console.log("📤 [OUTGOING HEADERS]:", res.getHeaders());
+
     return res.status(200).json({ ...secureInfo, role: "Customer" });
   } catch (error) {
     console.error("🔴 [USER LOGIN] Error:", error);
